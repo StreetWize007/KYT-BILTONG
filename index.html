@@ -6,6 +6,7 @@
     <title>KYT Halaal Biltong - POS with Database</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Your existing CSS styles remain unchanged */
         * {
             margin: 0;
             padding: 0;
@@ -927,8 +928,9 @@
         const SUPABASE_URL = 'https://lskbyeedebxfayzlzmnr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxza2J5ZWVkZWJ4ZmF5emx6bW5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5OTA0NDEsImV4cCI6MjA4MTU2NjQ0MX0.tgKvRJDPH3DobfwcNKXMTlWDsB4hCBi0LG20Y_zpLOw';
         
-        // Initialize Supabase client - FIXED: Only declared once
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Initialize Supabase client - FIXED: Proper initialization
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         // Test connection
         async function testSupabaseConnection() {
@@ -938,7 +940,7 @@
                 statusElement.innerHTML = '<i class="fas fa-sync-alt sync-indicator"></i><span>Connecting to Database...</span>';
                 
                 // Test query
-                const { data, error } = await supabase.from('customers').select('count').limit(1);
+                const { data, error } = await supabaseClient.from('customers').select('count').limit(1);
                 
                 if (error) {
                     // Table might not exist yet, but connection is working
@@ -967,7 +969,7 @@
         async function initializeDatabase() {
             try {
                 // Try to create tables by inserting test data (tables will auto-create with proper RLS)
-                const { error: customersError } = await supabase
+                const { error: customersError } = await supabaseClient
                     .from('customers')
                     .insert({
                         name: 'Test Customer - Will Be Deleted',
@@ -981,7 +983,7 @@
                 
                 if (!customersError) {
                     // Delete the test record
-                    await supabase
+                    await supabaseClient
                         .from('customers')
                         .delete()
                         .eq('name', 'Test Customer - Will Be Deleted');
@@ -996,7 +998,7 @@
         // Load customers from Supabase
         async function loadCustomersFromSupabase() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('customers')
                     .select('*')
                     .order('created_at', { ascending: false });
@@ -1037,7 +1039,7 @@
                     snackpack_quantity: customer.snackpacks || 0
                 };
                 
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('customers')
                     .insert([customerData])
                     .select();
@@ -1069,7 +1071,7 @@
         // Update customer in Supabase
         async function updateCustomerInSupabase(customerId, updates) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('customers')
                     .update({
                         amount_paid: updates.paid,
@@ -1102,7 +1104,7 @@
                     vat_amount: total * 0.15 / 1.15 // Calculate VAT
                 };
                 
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('sales')
                     .insert([saleData]);
                 
