@@ -134,6 +134,7 @@
         let currentFilter = 'all'; 
         let dateFilter = 'all'; // all, thisMonth, lastMonth
         let selectedOrderIds = new Set();
+        let searchQuery = ""; // NEW: Search State
 
         // --- Helper Functions ---
         
@@ -392,6 +393,29 @@
             renderUI();
         };
 
+        // --- Search Functionality (FIXED & ENHANCED) ---
+        window.handleSearch = (e) => {
+            searchQuery = e.target.value.toLowerCase().trim();
+            renderUI();
+            updateSearchUI();
+        };
+
+        window.clearSearch = () => {
+            searchQuery = "";
+            document.getElementById('searchInput').value = "";
+            renderUI();
+            updateSearchUI();
+        };
+
+        function updateSearchUI() {
+            const clearBtn = document.getElementById('clearSearchBtn');
+            if(searchQuery.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+        }
+
         window.exportToCSV = () => {
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Date,Customer,Phone,Flavor,Qty,Total,Status,Notes\n";
@@ -473,7 +497,19 @@
                 if(currentFilter === 'pending') statusPass = !o.paid;
                 if(currentFilter === 'paid') statusPass = o.paid;
 
-                return datePass && statusPass;
+                // ENHANCED: Search Filter (Customer, Phone, Flavor, Notes)
+                let searchPass = true;
+                if (searchQuery) {
+                    const q = searchQuery;
+                    const matchName = o.customer.toLowerCase().includes(q);
+                    const matchPhone = o.phone && o.phone.includes(q);
+                    const matchFlavor = o.flavor.toLowerCase().includes(q);
+                    const matchNotes = o.notes && o.notes.toLowerCase().includes(q);
+                    
+                    searchPass = matchName || matchPhone || matchFlavor || matchNotes;
+                }
+
+                return datePass && statusPass && searchPass;
             });
         }
 
@@ -536,8 +572,6 @@
                 if (o.paid) stats.collectedProfit += o.totalProfit;
                 else {
                     stats.potentialOwed += o.totalSales;
-                    // Only show pending payments in the sidebar if they are currently relevant
-                    // (Using global list for sidebar to not miss debts just because we filtered view to 'Paid')
                     if(allOrders.find(x => x.id === o.id).paid === false) {
                          debtHTML += `
                         <div class="p-3 rounded-xl border border-white/5 bg-white/5 flex justify-between items-center mb-2 animate-fade-in">
@@ -560,7 +594,7 @@
             document.getElementById('stat-revenue').innerText = formatCurrency(stats.totalRevenue);
             document.getElementById('stat-packs').innerText = stats.totalPacks;
             
-            // Render Sidebar Debts (Show top 10 owing)
+            // Render Sidebar Debts (Show top 15 owing)
             const globalDebtors = allOrders.filter(o => !o.paid).sort((a,b) => b.timestamp.toDate() - a.timestamp.toDate()).slice(0, 15);
             let globalDebtHTML = "";
             globalDebtors.forEach(o => {
@@ -594,7 +628,15 @@
             renderBulkActions();
 
             if (orders.length === 0) {
-                container.innerHTML = `<div class="p-8 text-center text-gray-500 flex flex-col items-center animate-fade-in"><i class="ph ph-magnifying-glass text-4xl mb-3 opacity-20"></i><p>No orders found.</p></div>`;
+                if(searchQuery) {
+                    container.innerHTML = `<div class="p-8 text-center text-gray-500 flex flex-col items-center animate-fade-in">
+                        <i class="ph ph-magnifying-glass text-4xl mb-3 opacity-20"></i>
+                        <p>No results found for "<span class="text-white font-bold">${searchQuery}</span>"</p>
+                        <button onclick="clearSearch()" class="mt-4 text-amber-500 text-sm font-bold hover:text-amber-400">Clear Search</button>
+                    </div>`;
+                } else {
+                    container.innerHTML = `<div class="p-8 text-center text-gray-500 flex flex-col items-center animate-fade-in"><i class="ph ph-magnifying-glass text-4xl mb-3 opacity-20"></i><p>No orders found.</p></div>`;
+                }
                 return;
             }
 
@@ -945,7 +987,14 @@
                         </h3>
                         
                         <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                            <input id="searchInput" onkeyup="/* Add search logic if needed, currently basic */" type="text" placeholder="Search..." class="glass-input px-3 py-2 rounded-lg text-xs w-full sm:w-32">
+                            <!-- Enhanced Search Bar -->
+                            <div class="relative w-full sm:w-auto flex-grow sm:flex-grow-0">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm"></i>
+                                <input id="searchInput" oninput="handleSearch(event)" type="text" placeholder="Search name, phone, flavor..." class="glass-input pl-9 pr-8 py-2 rounded-lg text-xs w-full sm:w-48 focus:w-64 transition-all">
+                                <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white transition-colors">
+                                    <i class="ph ph-x-circle text-lg"></i>
+                                </button>
+                            </div>
                             
                             <div class="flex bg-zinc-900/50 rounded-lg p-0.5 border border-white/5">
                                 <button onclick="setFilter('all')" class="filter-btn px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all bg-amber-500 text-black" data-filter="all">All</button>
