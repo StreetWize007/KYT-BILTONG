@@ -3,2022 +3,423 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KYT Halaal Biltong - POS with Database</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Your existing CSS styles remain unchanged */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: #f5f7fa;
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        header {
-            background: linear-gradient(to right, #2E7D32, #4CAF50);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 5px;
-        }
-
-        .logo {
-            font-size: 2.8rem;
-            color: #FFD700;
-        }
-
-        .subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        .datetime {
-            text-align: right;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1.2fr;
-            gap: 30px;
-        }
-
-        @media (max-width: 1200px) {
-            .main-content {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto;
-            }
-        }
-
-        .products-section, .order-section, .customers-section {
-            background-color: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
-
-        .section-title {
-            font-size: 1.8rem;
-            color: #2E7D32;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .category-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
-
-        .category-tab {
-            padding: 10px 20px;
-            background-color: #f0f0f0;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-            color: #555;
-        }
-
-        .category-tab:hover {
-            background-color: #e0e0e0;
-        }
-
-        .category-tab.active {
-            background-color: #2E7D32;
-            color: white;
-        }
-
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-            max-height: 500px;
-            overflow-y: auto;
-            padding-right: 10px;
-        }
-
-        .product-card {
-            background-color: white;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-            border: 2px solid transparent;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(46, 125, 50, 0.1);
-            border-color: #2E7D32;
-        }
-
-        .product-image {
-            width: 80px;
-            height: 80px;
-            background-color: #e8f5e9;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px;
-            font-size: 2rem;
-            color: #2E7D32;
-        }
-
-        .product-name {
-            font-weight: 700;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .product-desc {
-            font-size: 0.9rem;
-            color: #777;
-            margin-bottom: 10px;
-            min-height: 40px;
-        }
-
-        .product-price {
-            font-weight: 700;
-            color: #2E7D32;
-            font-size: 1.2rem;
-        }
-
-        .current-order {
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .order-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .order-item:last-child {
-            border-bottom: none;
-        }
-
-        .item-name {
-            font-weight: 600;
-        }
-
-        .item-qty {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .qty-btn {
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            background-color: #e0e0e0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .qty-btn:hover {
-            background-color: #2E7D32;
-            color: white;
-        }
-
-        .item-total {
-            font-weight: 600;
-            color: #2E7D32;
-        }
-
-        .remove-item {
-            color: #ff6b6b;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-
-        .totals {
-            padding: 20px 0;
-            border-top: 2px solid #eee;
-        }
-
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 1.1rem;
-        }
-
-        .grand-total {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: #2E7D32;
-            border-top: 2px dashed #2E7D32;
-            padding-top: 10px;
-            margin-top: 10px;
-        }
-
-        .payment-buttons {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-top: 25px;
-        }
-
-        .payment-btn {
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .payment-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
-        }
-
-        .cash-btn {
-            background-color: #4CAF50;
-            color: white;
-        }
-
-        .card-btn {
-            background-color: #2196F3;
-            color: white;
-        }
-
-        .eft-btn {
-            background-color: #FF9800;
-            color: white;
-        }
-
-        .complete-btn {
-            background-color: #2E7D32;
-            color: white;
-            grid-column: span 2;
-        }
-
-        .customer-tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .customer-tab {
-            padding: 12px 20px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            color: #777;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-        }
-
-        .customer-tab:hover {
-            color: #2E7D32;
-        }
-
-        .customer-tab.active {
-            color: #2E7D32;
-            border-bottom-color: #2E7D32;
-        }
-
-        .customers-list {
-            max-height: 500px;
-            overflow-y: auto;
-            padding-right: 10px;
-        }
-
-        .customer-card {
-            background-color: #f9f9f9;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 4px solid #2E7D32;
-            transition: all 0.3s;
-        }
-
-        .customer-card.owed {
-            border-left-color: #f44336;
-        }
-
-        .customer-card.paid {
-            border-left-color: #4CAF50;
-        }
-
-        .customer-card:hover {
-            transform: translateX(5px);
-            box-shadow: 0 5px 10px rgba(0,0,0,0.05);
-        }
-
-        .customer-name {
-            font-weight: 700;
-            font-size: 1.1rem;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .customer-details {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 8px;
-        }
-
-        .customer-phone {
-            color: #2196F3;
-        }
-
-        .customer-order {
-            font-size: 0.9rem;
-            color: #555;
-            margin-bottom: 10px;
-            padding: 8px;
-            background-color: white;
-            border-radius: 5px;
-        }
-
-        .customer-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .action-btn {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 5px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.9rem;
-        }
-
-        .collect-btn {
-            background-color: #4CAF50;
-            color: white;
-        }
-
-        .view-btn {
-            background-color: #2196F3;
-            color: white;
-        }
-
-        .add-customer-btn {
-            background-color: #2E7D32;
-            color: white;
-            width: 100%;
-            padding: 12px;
-            margin-top: 15px;
-            font-weight: 600;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s;
-        }
-
-        .add-customer-btn:hover {
-            background-color: #388E3C;
-        }
-
-        .customer-form {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-            display: none;
-        }
-
-        .form-row {
-            margin-bottom: 15px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #555;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-        }
-
-        .form-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .save-btn {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .cancel-btn {
-            background-color: #f44336;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .receipt-section {
-            background-color: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-top: 30px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
-
-        .receipt-content {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            max-height: 300px;
-            overflow-y: auto;
-            white-space: pre-line;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .action-btn-main {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .new-order-btn {
-            background-color: #2E7D32;
-            color: white;
-            flex: 2;
-        }
-
-        .print-btn {
-            background-color: #607D8B;
-            color: white;
-            flex: 1;
-        }
-
-        .clear-btn {
-            background-color: #f44336;
-            color: white;
-            flex: 1;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #777;
-            font-size: 0.9rem;
-        }
-
-        .customer-order-total {
-            font-weight: 700;
-            color: #2E7D32;
-        }
-
-        .owed-amount {
-            color: #f44336;
-            font-weight: 700;
-        }
-
-        .paid-status {
-            color: #4CAF50;
-            font-weight: 700;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-left: 10px;
-        }
-
-        .owed-badge {
-            background-color: #ffebee;
-            color: #f44336;
-        }
-
-        .paid-badge {
-            background-color: #e8f5e8;
-            color: #4CAF50;
-        }
-
-        .preorder-badge {
-            background-color: #fff3e0;
-            color: #FF9800;
-        }
-
-        .snackpack-count {
-            background-color: #e3f2fd;
-            color: #1976D2;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.8rem;
-            margin-left: 5px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .close-modal {
-            float: right;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #777;
-        }
-
-        .stats-summary {
-            background-color: #e8f5e9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .stats-row {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 10px;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #2E7D32;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .supabase-status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-        }
-
-        .status-connected {
-            background-color: #4CAF50;
-            color: white;
-        }
-
-        .status-disconnected {
-            background-color: #f44336;
-            color: white;
-        }
-
-        .status-loading {
-            background-color: #FF9800;
-            color: white;
-        }
-
-        .sync-indicator {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        .sync-btn {
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            margin-top: 10px;
-        }
-
-        .sync-btn:hover {
-            background-color: #0b7dda;
-        }
-
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-            
-            .receipt-content {
-                max-height: none;
-                overflow: visible;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <div class="header-content">
-                <div>
-                    <h1><i class="fas fa-utensils logo"></i> KYT Halaal Biltong POS</h1>
-                    <p class="subtitle">Premium Halaal Biltong - Cloud Database Enabled</p>
-                </div>
-                <div class="datetime">
-                    <div id="current-date"></div>
-                    <div id="current-time"></div>
-                    <div id="cashier">Cashier: Admin</div>
-                </div>
-            </div>
-        </header>
-
-        <!-- Supabase Status Indicator -->
-        <div class="supabase-status status-loading" id="supabase-status">
-            <i class="fas fa-sync-alt sync-indicator"></i>
-            <span>Connecting to Database...</span>
-        </div>
-
-        <div class="main-content">
-            <div class="products-section">
-                <h2 class="section-title">Biltong Products</h2>
-                
-                <div class="category-tabs">
-                    <div class="category-tab active" data-category="all">All Products</div>
-                    <div class="category-tab" data-category="beef">Beef Biltong</div>
-                    <div class="category-tab" data-category="game">Game Biltong</div>
-                    <div class="category-tab" data-category="spicy">Spicy Varieties</div>
-                    <div class="category-tab" data-category="snacks">Snack Packs</div>
-                </div>
-                
-                <div class="products-grid" id="products-container">
-                    <!-- Products loaded dynamically -->
-                </div>
-            </div>
-            
-            <div class="order-section">
-                <h2 class="section-title">Current Order</h2>
-                
-                <div class="current-order" id="current-order">
-                    <div class="empty-order" id="empty-order-message">
-                        <p style="text-align: center; color: #888; padding: 20px;">No items added yet. Select products to begin.</p>
-                    </div>
-                </div>
-                
-                <div class="totals">
-                    <div class="total-row">
-                        <span>Subtotal:</span>
-                        <span id="subtotal">R 0.00</span>
-                    </div>
-                    <div class="total-row">
-                        <span>VAT (15%):</span>
-                        <span id="vat">R 0.00</span>
-                    </div>
-                    <div class="total-row grand-total">
-                        <span>Total:</span>
-                        <span id="total">R 0.00</span>
-                    </div>
-                </div>
-                
-                <div class="payment-buttons">
-                    <button class="payment-btn cash-btn" id="cash-payment">
-                        <i class="fas fa-money-bill-wave"></i> Cash
-                    </button>
-                    <button class="payment-btn card-btn" id="card-payment">
-                        <i class="fas fa-credit-card"></i> Card
-                    </button>
-                    <button class="payment-btn eft-btn" id="eft-payment">
-                        <i class="fas fa-mobile-alt"></i> EFT
-                    </button>
-                    <button class="payment-btn complete-btn" id="complete-sale">
-                        <i class="fas fa-check-circle"></i> Complete Sale
-                    </button>
-                </div>
-            </div>
-            
-            <div class="customers-section">
-                <h2 class="section-title">Customer Management</h2>
-                
-                <div class="stats-summary">
-                    <div class="stats-row">
-                        <div class="stat-item">
-                            <div class="stat-value" id="total-owed">R 0.00</div>
-                            <div class="stat-label">Total Owed</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="total-customers">0</div>
-                            <div class="stat-label">Customers</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="total-snackpacks">0</div>
-                            <div class="stat-label">Snack Packs</div>
-                        </div>
-                    </div>
-                    <button class="sync-btn" id="sync-data">
-                        <i class="fas fa-sync-alt"></i> Sync with Database
-                    </button>
-                </div>
-                
-                <div class="customer-tabs">
-                    <button class="customer-tab active" data-customer-type="owed">Owe Money <span class="snackpack-count" id="owed-count">0</span></button>
-                    <button class="customer-tab" data-customer-type="paid">Paid in Full <span class="snackpack-count" id="paid-count">0</span></button>
-                    <button class="customer-tab" data-customer-type="all">All Customers</button>
-                </div>
-                
-                <div class="customers-list" id="customers-container">
-                    <!-- Customers loaded from Supabase -->
-                </div>
-                
-                <button class="add-customer-btn" id="add-customer">
-                    <i class="fas fa-user-plus"></i> Add New Customer/Order
-                </button>
-                
-                <div class="customer-form" id="customer-form">
-                    <h3>Add Customer Order</h3>
-                    <div class="form-row">
-                        <label class="form-label">Customer Name *</label>
-                        <input type="text" class="form-input" id="customer-name" placeholder="Enter full name">
-                    </div>
-                    <div class="form-row">
-                        <label class="form-label">Phone Number</label>
-                        <input type="tel" class="form-input" id="customer-phone" placeholder="Enter phone number">
-                    </div>
-                    <div class="form-row">
-                        <label class="form-label">Order Details *</label>
-                        <textarea class="form-input" id="customer-order-details" rows="3" placeholder="Describe the order (e.g., 2 x 50g Snack Pack @ R35 each)"></textarea>
-                    </div>
-                    <div class="form-row">
-                        <label class="form-label">Number of 50g Snack Packs</label>
-                        <input type="number" class="form-input" id="snackpack-qty" placeholder="Enter quantity" min="0" value="0">
-                    </div>
-                    <div class="form-row">
-                        <label class="form-label">Total Amount (R) *</label>
-                        <input type="number" class="form-input" id="customer-total" placeholder="Enter total amount" step="0.01">
-                    </div>
-                    <div class="form-row">
-                        <label class="form-label">Amount Paid (R) *</label>
-                        <input type="number" class="form-input" id="customer-paid" placeholder="Enter amount paid" step="0.01" value="0">
-                    </div>
-                    <div class="form-row">
-                        <label class="form-label">Status</label>
-                        <select class="form-input" id="customer-status">
-                            <option value="owed">Owe Money</option>
-                            <option value="paid">Paid in Full</option>
-                        </select>
-                    </div>
-                    <div class="form-buttons">
-                        <button class="save-btn" id="save-customer">Save Customer</button>
-                        <button class="cancel-btn" id="cancel-customer">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="receipt-section no-print">
-            <h2 class="section-title">Receipt</h2>
-            <div class="receipt-content" id="receipt-content"></div>
-            <div class="action-buttons">
-                <button class="action-btn-main new-order-btn" id="new-order">
-                    <i class="fas fa-receipt"></i> New Order
-                </button>
-                <button class="action-btn-main print-btn" id="print-receipt">
-                    <i class="fas fa-print"></i> Print Receipt
-                </button>
-                <button class="action-btn-main clear-btn" id="clear-order">
-                    <i class="fas fa-trash-alt"></i> Clear Order
-                </button>
-            </div>
-        </div>
-        
-        <!-- Payment Collection Modal -->
-        <div class="modal" id="payment-modal">
-            <div class="modal-content">
-                <span class="close-modal" id="close-payment-modal">&times;</span>
-                <h2>Collect Payment</h2>
-                <div id="modal-customer-details"></div>
-                <div class="form-row">
-                    <label class="form-label">Amount Owed</label>
-                    <input type="text" class="form-input" id="owed-amount" readonly>
-                </div>
-                <div class="form-row">
-                    <label class="form-label">Amount Received (R)</label>
-                    <input type="number" class="form-input" id="received-amount" placeholder="Enter amount received" step="0.01">
-                </div>
-                <div class="form-buttons">
-                    <button class="save-btn" id="confirm-payment">Confirm Payment</button>
-                    <button class="cancel-btn" id="cancel-payment">Cancel</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <p>KYT Halaal Biltong POS System v3.0 | Supabase Database Integration</p>
-        </div>
-    </div>
-
-    <!-- Include Supabase JS Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+    <title>KTY HALAAL BILTONG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // ==================== SUPABASE CONFIGURATION ====================
-        // YOUR CREDENTIALS ARE ALREADY INTEGRATED HERE
-        const SUPABASE_URL = 'https://lskbyeedebxfayzlzmnr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxza2J5ZWVkZWJ4ZmF5emx6bW5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5OTA0NDEsImV4cCI6MjA4MTU2NjQ0MX0.tgKvRJDPH3DobfwcNKXMTlWDsB4hCBi0LG20Y_zpLOw';
-        
-        // Initialize Supabase client - FIXED: Proper initialization
-        const { createClient } = supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        // Test connection
-        async function testSupabaseConnection() {
-            const statusElement = document.getElementById('supabase-status');
-            try {
-                statusElement.className = 'supabase-status status-loading';
-                statusElement.innerHTML = '<i class="fas fa-sync-alt sync-indicator"></i><span>Connecting to Database...</span>';
-                
-                // Test query
-                const { data, error } = await supabaseClient.from('customers').select('count').limit(1);
-                
-                if (error) {
-                    // Table might not exist yet, but connection is working
-                    if (error.code === '42P01') {
-                        statusElement.className = 'supabase-status status-connected';
-                        statusElement.innerHTML = '<i class="fas fa-database"></i><span>Connected - Ready to create tables</span>';
-                        return true;
-                    }
-                    throw error;
-                }
-                
-                statusElement.className = 'supabase-status status-connected';
-                statusElement.innerHTML = '<i class="fas fa-database"></i><span>Database Connected</span>';
-                return true;
-            } catch (error) {
-                console.error('Supabase connection error:', error);
-                statusElement.className = 'supabase-status status-disconnected';
-                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Database Disconnected - Using Local Storage</span>';
-                return false;
-            }
-        }
-        
-        // ==================== DATABASE FUNCTIONS ====================
-        
-        // Create necessary tables if they don't exist
-        async function initializeDatabase() {
-            try {
-                // Try to create tables by inserting test data (tables will auto-create with proper RLS)
-                const { error: customersError } = await supabaseClient
-                    .from('customers')
-                    .insert({
-                        name: 'Test Customer - Will Be Deleted',
-                        phone: '0000000000',
-                        order_details: 'Test Order - Delete Me',
-                        total_amount: 0,
-                        amount_paid: 0,
-                        status: 'paid',
-                        snackpack_quantity: 0
-                    });
-                
-                if (!customersError) {
-                    // Delete the test record
-                    await supabaseClient
-                        .from('customers')
-                        .delete()
-                        .eq('name', 'Test Customer - Will Be Deleted');
-                }
-                
-                console.log('Database initialization attempted');
-            } catch (error) {
-                console.log('Database initialization note: Tables will be created on first insert');
-            }
-        }
-        
-        // Load customers from Supabase
-        async function loadCustomersFromSupabase() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('customers')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                
-                if (error) throw error;
-                
-                if (data && data.length > 0) {
-                    // Convert Supabase data to our format
-                    return data.map(customer => ({
-                        id: customer.id,
-                        name: customer.name,
-                        phone: customer.phone || '',
-                        order: customer.order_details,
-                        total: customer.total_amount,
-                        paid: customer.amount_paid,
-                        status: customer.status,
-                        snackpacks: customer.snackpack_quantity || 0,
-                        date: customer.created_at ? customer.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
-                    }));
-                }
-                return [];
-            } catch (error) {
-                console.error('Error loading customers:', error);
-                return [];
-            }
-        }
-        
-        // Save customer to Supabase
-        async function saveCustomerToSupabase(customer) {
-            try {
-                const customerData = {
-                    name: customer.name,
-                    phone: customer.phone || '',
-                    order_details: customer.order,
-                    total_amount: customer.total,
-                    amount_paid: customer.paid,
-                    status: customer.status,
-                    snackpack_quantity: customer.snackpacks || 0
-                };
-                
-                const { data, error } = await supabaseClient
-                    .from('customers')
-                    .insert([customerData])
-                    .select();
-                
-                if (error) throw error;
-                
-                // Return the new customer with the database ID
-                return {
-                    ...customer,
-                    id: data[0].id,
-                    date: data[0].created_at ? data[0].created_at.split('T')[0] : new Date().toISOString().split('T')[0]
-                };
-            } catch (error) {
-                console.error('Error saving customer:', error);
-                // Fallback to local storage
-                const localCustomers = JSON.parse(localStorage.getItem('kyt_customers') || '[]');
-                const newId = localCustomers.length > 0 ? Math.max(...localCustomers.map(c => c.id)) + 1 : 1;
-                const newCustomer = { 
-                    ...customer, 
-                    id: newId,
-                    date: new Date().toISOString().split('T')[0]
-                };
-                localCustomers.push(newCustomer);
-                localStorage.setItem('kyt_customers', JSON.stringify(localCustomers));
-                return newCustomer;
-            }
-        }
-        
-        // Update customer in Supabase
-        async function updateCustomerInSupabase(customerId, updates) {
-            try {
-                const { error } = await supabaseClient
-                    .from('customers')
-                    .update({
-                        amount_paid: updates.paid,
-                        status: updates.status
-                    })
-                    .eq('id', customerId);
-                
-                if (error) throw error;
-                return true;
-            } catch (error) {
-                console.error('Error updating customer:', error);
-                // Fallback to local storage
-                const localCustomers = JSON.parse(localStorage.getItem('kyt_customers') || '[]');
-                const index = localCustomers.findIndex(c => c.id === customerId);
-                if (index !== -1) {
-                    localCustomers[index] = { ...localCustomers[index], ...updates };
-                    localStorage.setItem('kyt_customers', JSON.stringify(localCustomers));
-                }
-                return false;
-            }
-        }
-        
-        // Save sale to Supabase
-        async function saveSaleToSupabase(orderData, paymentMethod, total) {
-            try {
-                const saleData = {
-                    items: JSON.stringify(orderData),
-                    payment_method: paymentMethod,
-                    total_amount: total,
-                    vat_amount: total * 0.15 / 1.15 // Calculate VAT
-                };
-                
-                const { error } = await supabaseClient
-                    .from('sales')
-                    .insert([saleData]);
-                
-                if (error) throw error;
-                return true;
-            } catch (error) {
-                console.error('Error saving sale:', error);
-                // Fallback to local storage
-                const localSales = JSON.parse(localStorage.getItem('kyt_sales') || '[]');
-                localSales.push({
-                    id: localSales.length + 1,
-                    ...saleData,
-                    created_at: new Date().toISOString()
-                });
-                localStorage.setItem('kyt_sales', JSON.stringify(localSales));
-                return false;
-            }
-        }
-        
-        // ==================== LOCAL STORAGE FALLBACK ====================
-        
-        // Load customers from local storage
-        function loadCustomersFromLocalStorage() {
-            try {
-                const stored = localStorage.getItem('kyt_customers');
-                if (stored) {
-                    return JSON.parse(stored);
-                }
-            } catch (error) {
-                console.error('Error loading from local storage:', error);
-            }
-            return [];
-        }
-        
-        // Save customers to local storage
-        function saveCustomersToLocalStorage(customers) {
-            try {
-                localStorage.setItem('kyt_customers', JSON.stringify(customers));
-            } catch (error) {
-                console.error('Error saving to local storage:', error);
-            }
-        }
-        
-        // ==================== MAIN APPLICATION CODE ====================
-        
-        // Biltong products database
-        const products = [
-            { id: 1, name: "Traditional Beef", category: "beef", price: 185.00, description: "Classic dry-aged beef biltong", icon: "🥩" },
-            { id: 2, name: "Pepper Beef", category: "beef", price: 195.00, description: "Beef with cracked black pepper", icon: "🌶️" },
-            { id: 3, name: "Chili Bite", category: "spicy", price: 175.00, description: "Extra spicy chili bites", icon: "🔥" },
-            { id: 4, name: "Kudu Biltong", category: "game", price: 250.00, description: "Premium game meat", icon: "🦌" },
-            { id: 5, name: "50g Snack Pack", category: "snacks", price: 35.00, description: "50g mixed biltong snack", icon: "🍖" },
-            { id: 6, name: "100g Snack Pack", category: "snacks", price: 65.00, description: "100g mixed biltong snack", icon: "🍗" },
-            { id: 7, name: "Garlic Beef", category: "beef", price: 190.00, description: "Garlic infused beef biltong", icon: "🧄" },
-            { id: 8, name: "Droëwors", category: "snacks", price: 165.00, description: "Traditional dried sausage", icon: "🌭" },
-            { id: 9, name: "Ostrich Biltong", category: "game", price: 275.00, description: "Lean ostrich meat", icon: "🐦" },
-            { id: 10, name: "Peri-Peri Beef", category: "spicy", price: 200.00, description: "Portuguese peri-peri flavor", icon: "🌶️" },
-            { id: 11, name: "Sweet & Salty", category: "beef", price: 180.00, description: "Sweet cured beef biltong", icon: "🍯" },
-            { id: 12, name: "500g Family Pack", category: "snacks", price: 350.00, description: "500g family size pack", icon: "👨‍👩‍👧‍👦" }
-        ];
+        tailwind.config = { corePlugins: { preflight: false } }
+    </script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Customer database (initial data that will be saved to Supabase)
-        const initialCustomers = [
-            // Customers who OWE MONEY for R35 50g snack packs
-            { name: "Calene", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Muhammed Ameen", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Shamala", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Lavesh", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Usama", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Nomzamo", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Avishka", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Uzair Razak", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Sameera", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Trudy", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Selene", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Sha", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Patel", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Zakir", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Jerome", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Naiomi", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Aslam", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Jayleen", phone: "", order: "50g Snack Pack", total: 35.00, paid: 0.00, status: "owed", snackpacks: 1 },
-            { name: "Bridgette", phone: "", order: "2 x 50g Snack Pack", total: 70.00, paid: 0.00, status: "owed", snackpacks: 2 },
-            { name: "Busi", phone: "", order: "2 x 50g Snack Pack", total: 70.00, paid: 0.00, status: "owed", snackpacks: 2 },
-            { name: "Desareen", phone: "", order: "2 x 50g Snack Pack", total: 70.00, paid: 0.00, status: "owed", snackpacks: 2 },
-            
-            // Customers who ALREADY PAID
-            { name: "Lushen", phone: "", order: "50g Snack Pack", total: 35.00, paid: 35.00, status: "paid", snackpacks: 1 },
-            { name: "Anusha", phone: "", order: "50g Snack Pack", total: 35.00, paid: 35.00, status: "paid", snackpacks: 1 },
-            { name: "Bridgette (Paid)", phone: "", order: "2 x 50g Snack Pack", total: 70.00, paid: 70.00, status: "paid", snackpacks: 2 },
-            { name: "Waseem", phone: "", order: "3 x 50g Snack Pack", total: 105.00, paid: 105.00, status: "paid", snackpacks: 3 },
-            { name: "Kerina", phone: "", order: "2 x 50g Snack Pack", total: 70.00, paid: 70.00, status: "paid", snackpacks: 2 },
-            { name: "Azaria", phone: "", order: "50g Snack Pack", total: 35.00, paid: 35.00, status: "paid", snackpacks: 1 }
-        ];
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8VkN2_icMo9LEM1TbPjDf_kckmSI41z0",
+            authDomain: "biltong-fd731.firebaseapp.com",
+            projectId: "biltong-fd731",
+            storageBucket: "biltong-fd731.firebasestorage.app",
+            messagingSenderId: "922275664562",
+            appId: "1:922275664562:web:c07db5cd9d5a90b936afab",
+            measurementId: "G-ZMXEPCM0VH"
+        };
 
-        // Global variables
-        let customers = [];
-        let currentOrder = [];
-        let paymentMethod = "";
-        let receiptContent = "";
-        let selectedCustomerType = "owed";
-        let currentCustomerId = null;
-        let isSupabaseConnected = false;
-
-        // DOM elements
-        const productsContainer = document.getElementById('products-container');
-        const currentOrderContainer = document.getElementById('current-order');
-        const emptyOrderMessage = document.getElementById('empty-order-message');
-        const subtotalElement = document.getElementById('subtotal');
-        const vatElement = document.getElementById('vat');
-        const totalElement = document.getElementById('total');
-        const receiptContentElement = document.getElementById('receipt-content');
-        const categoryTabs = document.querySelectorAll('.category-tab');
-        const customerTabs = document.querySelectorAll('.customer-tab');
-        const customersContainer = document.getElementById('customers-container');
-        const customerForm = document.getElementById('customer-form');
-        const addCustomerBtn = document.getElementById('add-customer');
-        const saveCustomerBtn = document.getElementById('save-customer');
-        const cancelCustomerBtn = document.getElementById('cancel-customer');
-        const paymentButtons = document.querySelectorAll('.payment-btn');
-        const newOrderBtn = document.getElementById('new-order');
-        const printReceiptBtn = document.getElementById('print-receipt');
-        const clearOrderBtn = document.getElementById('clear-order');
-        const completeSaleBtn = document.getElementById('complete-sale');
-        const syncDataBtn = document.getElementById('sync-data');
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
         
-        // Stats elements
-        const totalOwedElement = document.getElementById('total-owed');
-        const totalCustomersElement = document.getElementById('total-customers');
-        const totalSnackpacksElement = document.getElementById('total-snackpacks');
-        const owedCountElement = document.getElementById('owed-count');
-        const paidCountElement = document.getElementById('paid-count');
-        
-        // Modal elements
-        const paymentModal = document.getElementById('payment-modal');
-        const closePaymentModal = document.getElementById('close-payment-modal');
-        const cancelPaymentBtn = document.getElementById('cancel-payment');
-        const confirmPaymentBtn = document.getElementById('confirm-payment');
-        const modalCustomerDetails = document.getElementById('modal-customer-details');
-        const owedAmountInput = document.getElementById('owed-amount');
-        const receivedAmountInput = document.getElementById('received-amount');
+        const PRICE_PER_PACK = 35;
+        const COST_PER_PACK = 16.25; 
 
-        // Initialize the app
-        async function init() {
-            displayProducts('all');
-            updateDateTime();
-            setInterval(updateDateTime, 1000);
-            setupEventListeners();
-            updateOrderSummary();
-            
-            // Test Supabase connection
-            isSupabaseConnected = await testSupabaseConnection();
-            
-            if (isSupabaseConnected) {
-                await initializeDatabase();
-                await loadCustomers();
-            } else {
-                // Use local storage
-                await loadCustomers();
-            }
-        }
+        let allOrders = [];
+        let groupedCustomers = {};
 
-        // Load customers from appropriate source
-        async function loadCustomers() {
-            let loadedCustomers = [];
+        window.saveOrder = async () => {
+            const customer = document.getElementById('customer').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const flavor = document.getElementById('flavor').value;
+            const qty = parseInt(document.getElementById('qty').value);
+            const isPaid = document.getElementById('isPaid').checked;
             
-            if (isSupabaseConnected) {
-                loadedCustomers = await loadCustomersFromSupabase();
-                
-                // If no customers in Supabase, insert initial data
-                if (loadedCustomers.length === 0) {
-                    console.log('No customers in database, inserting initial data...');
-                    for (const customer of initialCustomers) {
-                        const savedCustomer = await saveCustomerToSupabase(customer);
-                        if (savedCustomer) {
-                            loadedCustomers.push(savedCustomer);
-                        }
-                    }
-                }
-            } else {
-                loadedCustomers = loadCustomersFromLocalStorage();
-                
-                // If no customers in local storage, use initial data
-                if (loadedCustomers.length === 0) {
-                    console.log('No customers in local storage, using initial data...');
-                    loadedCustomers = initialCustomers.map((customer, index) => ({
-                        ...customer,
-                        id: index + 1,
-                        date: new Date().toISOString().split('T')[0]
-                    }));
-                    saveCustomersToLocalStorage(loadedCustomers);
-                }
-            }
-            
-            customers = loadedCustomers;
-            displayCustomers('owed');
-            updateStats();
-        }
-
-        // Sync data with Supabase
-        async function syncData() {
-            const statusElement = document.getElementById('supabase-status');
-            const oldStatus = statusElement.innerHTML;
-            
-            statusElement.className = 'supabase-status status-loading';
-            statusElement.innerHTML = '<i class="fas fa-sync-alt sync-indicator"></i><span>Syncing data...</span>';
-            
-            try {
-                // Re-test connection
-                isSupabaseConnected = await testSupabaseConnection();
-                
-                if (isSupabaseConnected) {
-                    // Upload local customers to Supabase
-                    const localCustomers = loadCustomersFromLocalStorage();
-                    if (localCustomers.length > 0) {
-                        for (const customer of localCustomers) {
-                            await saveCustomerToSupabase(customer);
-                        }
-                        // Clear local storage after successful sync
-                        localStorage.removeItem('kyt_customers');
-                    }
-                    
-                    // Reload from Supabase
-                    await loadCustomers();
-                    
-                    statusElement.className = 'supabase-status status-connected';
-                    statusElement.innerHTML = '<i class="fas fa-check-circle"></i><span>Data Synced Successfully</span>';
-                    
-                    setTimeout(() => {
-                        statusElement.className = 'supabase-status status-connected';
-                        statusElement.innerHTML = '<i class="fas fa-database"></i><span>Database Connected</span>';
-                    }, 3000);
-                }
-            } catch (error) {
-                console.error('Sync error:', error);
-                statusElement.className = 'supabase-status status-disconnected';
-                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Sync Failed</span>';
-                
-                setTimeout(() => {
-                    statusElement.className = 'supabase-status status-disconnected';
-                    statusElement.innerHTML = oldStatus;
-                }, 3000);
-            }
-        }
-
-        // Update statistics
-        function updateStats() {
-            const totalOwed = customers
-                .filter(c => c.status === "owed")
-                .reduce((sum, customer) => sum + (customer.total - customer.paid), 0);
-            
-            const totalCustomers = customers.length;
-            const totalSnackpacks = customers.reduce((sum, customer) => sum + (customer.snackpacks || 0), 0);
-            const owedCount = customers.filter(c => c.status === "owed").length;
-            const paidCount = customers.filter(c => c.status === "paid").length;
-            
-            totalOwedElement.textContent = `R ${totalOwed.toFixed(2)}`;
-            totalCustomersElement.textContent = totalCustomers;
-            totalSnackpacksElement.textContent = totalSnackpacks;
-            owedCountElement.textContent = owedCount;
-            paidCountElement.textContent = paidCount;
-        }
-
-        // Display products based on selected category
-        function displayProducts(category) {
-            productsContainer.innerHTML = '';
-            
-            const filteredProducts = category === 'all' 
-                ? products 
-                : products.filter(product => product.category === category);
-            
-            filteredProducts.forEach(product => {
-                const productCard = document.createElement('div');
-                productCard.className = 'product-card';
-                productCard.setAttribute('data-id', product.id);
-                
-                productCard.innerHTML = `
-                    <div class="product-image">
-                        ${product.icon}
-                    </div>
-                    <div class="product-name">${product.name}</div>
-                    <div class="product-desc">${product.description}</div>
-                    <div class="product-price">R ${product.price.toFixed(2)}</div>
-                `;
-                
-                productsContainer.appendChild(productCard);
-            });
-            
-            // Add click events to product cards
-            document.querySelectorAll('.product-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    const productId = parseInt(this.getAttribute('data-id'));
-                    addToOrder(productId);
-                });
-            });
-        }
-
-        // Display customers based on selected type
-        function displayCustomers(type) {
-            customersContainer.innerHTML = '';
-            selectedCustomerType = type;
-            
-            let filteredCustomers;
-            if (type === 'all') {
-                filteredCustomers = [...customers];
-            } else {
-                filteredCustomers = customers.filter(customer => customer.status === type);
-            }
-            
-            filteredCustomers.sort((a, b) => {
-                if (a.status === 'owed' && b.status !== 'owed') return -1;
-                if (a.status !== 'owed' && b.status === 'owed') return 1;
-                return a.name.localeCompare(b.name);
-            });
-            
-            if (filteredCustomers.length === 0) {
-                customersContainer.innerHTML = `<p style="text-align: center; color: #888; padding: 20px;">No ${getCustomerTypeLabel(type)} found.</p>`;
+            if(!customer || isNaN(qty) || qty <= 0) {
+                showToast("Please fill in all fields correctly!", "error");
                 return;
             }
-            
-            filteredCustomers.forEach(customer => {
-                const customerCard = document.createElement('div');
-                customerCard.className = `customer-card ${customer.status}`;
-                
-                const owedAmount = customer.total - customer.paid;
-                const statusBadge = getStatusBadge(customer.status);
-                const snackpackBadge = customer.snackpacks > 0 ? `<span class="snackpack-count">${customer.snackpacks} pack${customer.snackpacks > 1 ? 's' : ''}</span>` : '';
-                
-                customerCard.innerHTML = `
-                    <div class="customer-name">
-                        ${customer.name}
-                        ${statusBadge}
-                        ${snackpackBadge}
-                    </div>
-                    <div class="customer-details">
-                        ${customer.phone ? `<span class="customer-phone"><i class="fas fa-phone"></i> ${customer.phone}</span>` : '<span>No phone</span>'}
-                        <span>${formatDate(customer.date)}</span>
-                    </div>
-                    <div class="customer-order">${customer.order}</div>
-                    <div class="customer-details">
-                        <span>Total: <span class="customer-order-total">R ${customer.total.toFixed(2)}</span></span>
-                        <span>Paid: <span class="paid-status">R ${customer.paid.toFixed(2)}</span></span>
-                    </div>
-                    ${customer.status === 'owed' ? `<div class="owed-amount">Owed: R ${owedAmount.toFixed(2)}</div>` : ''}
-                    <div class="customer-actions">
-                        ${customer.status === 'owed' ? `<button class="action-btn collect-btn" data-id="${customer.id}"><i class="fas fa-money-bill-wave"></i> Collect Payment</button>` : ''}
-                        <button class="action-btn view-btn" data-id="${customer.id}"><i class="fas fa-eye"></i> View Details</button>
-                    </div>
-                `;
-                
-                customersContainer.appendChild(customerCard);
-            });
-            
-            // Add event listeners to action buttons
-            document.querySelectorAll('.collect-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const customerId = parseInt(this.getAttribute('data-id'));
-                    openPaymentModal(customerId);
-                });
-            });
-            
-            document.querySelectorAll('.view-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const customerId = parseInt(this.getAttribute('data-id'));
-                    viewCustomerDetails(customerId);
-                });
-            });
-        }
 
-        // Get customer type label
-        function getCustomerTypeLabel(type) {
-            switch(type) {
-                case 'owed': return 'customers who owe money';
-                case 'paid': return 'paid customers';
-                case 'all': return 'customers';
-                default: return 'customers';
+            try {
+                await addDoc(collection(db, "orders"), {
+                    customer, phone, flavor, qty,
+                    totalSales: qty * PRICE_PER_PACK,
+                    totalProfit: qty * (PRICE_PER_PACK - COST_PER_PACK),
+                    paid: isPaid,
+                    timestamp: new Date()
+                });
+                showToast("Order logged successfully!", "success");
+                document.getElementById('customer').value = '';
+                document.getElementById('phone').value = '';
+                document.getElementById('qty').value = '';
+                document.getElementById('isPaid').checked = false;
+                await loadData();
+            } catch (e) { 
+                showToast("Error: " + e.message, "error"); 
             }
-        }
+        };
 
-        // Get status badge HTML
-        function getStatusBadge(status) {
-            switch(status) {
-                case 'owed': return '<span class="status-badge owed-badge">OWES MONEY</span>';
-                case 'paid': return '<span class="status-badge paid-badge">PAID IN FULL</span>';
-                default: return '';
-            }
-        }
+        window.markAsPaid = async (orderId) => {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerText = "Marking...";
+            await updateDoc(doc(db, "orders", orderId), { paid: true });
+            await loadData();
+        };
 
-        // Format date for display
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
+        window.changeFlavor = (orderId, currentFlavor) => {
+            document.getElementById('flavorModal').dataset.orderId = orderId;
+            document.getElementById('flavorSelect').value = currentFlavor;
+            document.getElementById('flavorModal').classList.remove('hidden');
+        };
 
-        // Open payment collection modal
-        function openPaymentModal(customerId) {
-            const customer = customers.find(c => c.id === customerId);
-            if (!customer) return;
-            
-            currentCustomerId = customerId;
-            const owedAmount = customer.total - customer.paid;
-            
-            modalCustomerDetails.innerHTML = `
-                <p><strong>Customer:</strong> ${customer.name}</p>
-                <p><strong>Order:</strong> ${customer.order}</p>
-                <p><strong>Total:</strong> R ${customer.total.toFixed(2)}</p>
-                <p><strong>Already Paid:</strong> R ${customer.paid.toFixed(2)}</p>
-            `;
-            
-            owedAmountInput.value = `R ${owedAmount.toFixed(2)}`;
-            receivedAmountInput.value = owedAmount.toFixed(2);
-            receivedAmountInput.focus();
-            
-            paymentModal.style.display = 'flex';
-        }
+        window.confirmChangeFlavor = async () => {
+            const modal = document.getElementById('flavorModal');
+            const orderId = modal.dataset.orderId;
+            const newFlavor = document.getElementById('flavorSelect').value;
+            await updateDoc(doc(db, "orders", orderId), { flavor: newFlavor });
+            modal.classList.add('hidden');
+            showToast("Flavor updated!", "success");
+            await loadData();
+        };
 
-        // View customer details
-        function viewCustomerDetails(customerId) {
-            const customer = customers.find(c => c.id === customerId);
-            if (!customer) return;
-            
-            const owedAmount = customer.total - customer.paid;
-            
-            let details = `Customer Details:\n\n`;
-            details += `Name: ${customer.name}\n`;
-            if (customer.phone) details += `Phone: ${customer.phone}\n`;
-            details += `Order: ${customer.order}\n`;
-            details += `Total: R ${customer.total.toFixed(2)}\n`;
-            details += `Paid: R ${customer.paid.toFixed(2)}\n`;
-            if (customer.snackpacks) details += `50g Snack Packs: ${customer.snackpacks}\n`;
-            details += `Date: ${formatDate(customer.date)}\n`;
-            details += `Status: ${customer.status === 'owed' ? 'Owes Money' : 'Paid in Full'}\n`;
-            if (customer.status === 'owed') details += `Amount Owed: R ${owedAmount.toFixed(2)}`;
-            
-            alert(details);
-        }
+        window.closeFlavorModal = () => document.getElementById('flavorModal').classList.add('hidden');
 
-        // Add product to current order
-        function addToOrder(productId) {
-            const product = products.find(p => p.id === productId);
-            if (!product) return;
-            
-            const existingItem = currentOrder.find(item => item.id === productId);
-            
-            if (existingItem) {
-                existingItem.quantity += 1;
-            } else {
-                currentOrder.push({
-                    id: product.id,
-                    name: product.name,
-                    price: product.price,
-                    quantity: 1
-                });
-            }
-            
-            updateOrderDisplay();
-            updateOrderSummary();
-        }
+        window.editCustomerName = (orderId, currentName) => {
+            document.getElementById('nameModal').dataset.orderId = orderId;
+            document.getElementById('newNameInput').value = currentName;
+            document.getElementById('nameModal').classList.remove('hidden');
+        };
 
-        // Update the order display
-        function updateOrderDisplay() {
-            if (currentOrder.length > 0) {
-                emptyOrderMessage.style.display = 'none';
-            } else {
-                emptyOrderMessage.style.display = 'block';
-            }
-            
-            const orderItems = currentOrderContainer.querySelectorAll('.order-item');
-            orderItems.forEach(item => item.remove());
-            
-            currentOrder.forEach(item => {
-                const orderItem = document.createElement('div');
-                orderItem.className = 'order-item';
-                orderItem.innerHTML = `
-                    <div class="item-name">${item.name}</div>
-                    <div class="item-qty">
-                        <div class="qty-btn minus" data-id="${item.id}">-</div>
-                        <div class="item-quantity">${item.quantity}</div>
-                        <div class="qty-btn plus" data-id="${item.id}">+</div>
-                        <div class="remove-item" data-id="${item.id}"><i class="fas fa-times"></i></div>
-                    </div>
-                    <div class="item-total">R ${(item.price * item.quantity).toFixed(2)}</div>
-                `;
-                
-                currentOrderContainer.appendChild(orderItem);
-            });
-            
-            document.querySelectorAll('.qty-btn.minus').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const productId = parseInt(this.getAttribute('data-id'));
-                    updateQuantity(productId, -1);
-                });
-            });
-            
-            document.querySelectorAll('.qty-btn.plus').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const productId = parseInt(this.getAttribute('data-id'));
-                    updateQuantity(productId, 1);
-                });
-            });
-            
-            document.querySelectorAll('.remove-item').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const productId = parseInt(this.getAttribute('data-id'));
-                    removeFromOrder(productId);
-                });
-            });
-        }
-
-        // Update quantity of an item in the order
-        function updateQuantity(productId, change) {
-            const itemIndex = currentOrder.findIndex(item => item.id === productId);
-            if (itemIndex === -1) return;
-            
-            currentOrder[itemIndex].quantity += change;
-            
-            if (currentOrder[itemIndex].quantity <= 0) {
-                currentOrder.splice(itemIndex, 1);
-            }
-            
-            updateOrderDisplay();
-            updateOrderSummary();
-        }
-
-        // Remove item from order completely
-        function removeFromOrder(productId) {
-            const itemIndex = currentOrder.findIndex(item => item.id === productId);
-            if (itemIndex === -1) return;
-            
-            currentOrder.splice(itemIndex, 1);
-            
-            updateOrderDisplay();
-            updateOrderSummary();
-        }
-
-        // Update order summary (subtotal, VAT, total)
-        function updateOrderSummary() {
-            const subtotal = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const vat = subtotal * 0.15;
-            const total = subtotal + vat;
-            
-            subtotalElement.textContent = `R ${subtotal.toFixed(2)}`;
-            vatElement.textContent = `R ${vat.toFixed(2)}`;
-            totalElement.textContent = `R ${total.toFixed(2)}`;
-        }
-
-        // Complete the sale and generate receipt
-        async function completeSale() {
-            if (currentOrder.length === 0) {
-                alert("Please add items to the order before completing the sale.");
+        window.confirmChangeName = async () => {
+            const modal = document.getElementById('nameModal');
+            const orderId = modal.dataset.orderId;
+            const newName = document.getElementById('newNameInput').value.trim();
+            if (!newName) {
+                showToast("Customer name cannot be empty!", "error");
                 return;
             }
-            
-            if (!paymentMethod) {
-                alert("Please select a payment method.");
-                return;
-            }
-            
-            const subtotal = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const vat = subtotal * 0.15;
-            const total = subtotal + vat;
-            
-            // Save sale to database
-            if (isSupabaseConnected) {
-                await saveSaleToSupabase(currentOrder, paymentMethod, total);
-            } else {
-                // Save to local storage
-                const localSales = JSON.parse(localStorage.getItem('kyt_sales') || '[]');
-                localSales.push({
-                    id: localSales.length + 1,
-                    items: currentOrder,
-                    payment_method: paymentMethod,
-                    total_amount: total,
-                    vat_amount: vat,
-                    created_at: new Date().toISOString()
-                });
-                localStorage.setItem('kyt_sales', JSON.stringify(localSales));
-            }
-            
-            generateReceipt();
+            await updateDoc(doc(db, "orders", orderId), { customer: newName });
+            modal.classList.add('hidden');
+            showToast("Customer name updated!", "success");
+            await loadData();
+        };
+
+        window.closeNameModal = () => document.getElementById('nameModal').classList.add('hidden');
+
+        window.deleteOrder = (orderId) => {
+            document.getElementById('deleteModal').dataset.orderId = orderId;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        };
+
+        window.confirmDelete = async () => {
+            const modal = document.getElementById('deleteModal');
+            const orderId = modal.dataset.orderId;
+            await deleteDoc(doc(db, "orders", orderId));
+            modal.classList.add('hidden');
+            showToast("Order deleted.", "success");
+            await loadData();
+        };
+
+        window.closeDeleteModal = () => document.getElementById('deleteModal').classList.add('hidden');
+
+        window.searchCustomers = () => {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = Object.keys(groupedCustomers)
+                .filter(name => name.toLowerCase().includes(term))
+                .sort();
+            renderCustomerHistory(filtered);
+        };
+
+        function showToast(message, type = "info") {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 left-4 right-4 mx-4 px-6 py-4 rounded-xl shadow-2xl text-white font-bold z-50 text-center sm:left-auto sm:right-4 sm:mx-0 sm:w-auto ${
+                type === "success" ? "bg-green-600" : type === "error" ? "bg-red-600" : "bg-blue-600"
+            }`;
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = "0";
+                setTimeout(() => document.body.removeChild(toast), 500);
+            }, 3000);
         }
 
-        // Generate receipt
-        function generateReceipt() {
-            const subtotal = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const vat = subtotal * 0.15;
-            const total = subtotal + vat;
+        async function loadData() {
+            const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
+            const querySnapshot = await getDocs(q);
             
-            const now = new Date();
-            const dateStr = now.toLocaleDateString();
-            const timeStr = now.toLocaleTimeString();
-            
-            let receipt = `================================\n`;
-            receipt += `       KYT HALAAL BILTONG\n`;
-            receipt += `   Premium Halaal Biltong Shop\n`;
-            receipt += `================================\n`;
-            receipt += `Date: ${dateStr}\n`;
-            receipt += `Time: ${timeStr}\n`;
-            receipt += `Cashier: Admin\n`;
-            receipt += `Payment: ${paymentMethod}\n`;
-            receipt += `--------------------------------\n`;
-            receipt += `ITEMS:\n`;
-            
-            currentOrder.forEach(item => {
-                const itemTotal = (item.price * item.quantity).toFixed(2);
-                receipt += `${item.quantity} x ${item.name}\n`;
-                receipt += `        R ${itemTotal}\n`;
-            });
-            
-            receipt += `--------------------------------\n`;
-            receipt += `Subtotal:    R ${subtotal.toFixed(2)}\n`;
-            receipt += `VAT (15%):   R ${vat.toFixed(2)}\n`;
-            receipt += `Total:       R ${total.toFixed(2)}\n`;
-            receipt += `================================\n`;
-            receipt += `   Thank you for your purchase!\n`;
-            receipt += `   Quality Halaal Biltong\n`;
-            receipt += `================================\n`;
-            
-            receiptContent = receipt;
-            receiptContentElement.textContent = receipt;
-            
-            document.querySelector('.receipt-section').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // Add new customer
-        async function addNewCustomer() {
-            const name = document.getElementById('customer-name').value.trim();
-            const phone = document.getElementById('customer-phone').value.trim();
-            const order = document.getElementById('customer-order-details').value.trim();
-            const snackpackQty = parseInt(document.getElementById('snackpack-qty').value) || 0;
-            const total = parseFloat(document.getElementById('customer-total').value) || 0;
-            const paid = parseFloat(document.getElementById('customer-paid').value) || 0;
-            const status = document.getElementById('customer-status').value;
-            
-            if (!name || !order || total <= 0) {
-                alert("Please fill in all required fields (*) with valid data.");
-                return;
-            }
-            
-            if (paid > total) {
-                alert("Paid amount cannot exceed total amount.");
-                return;
-            }
-            
-            let finalStatus = status;
-            if (paid >= total) {
-                finalStatus = "paid";
-            } else {
-                finalStatus = "owed";
-            }
-            
-            let orderDescription = order;
-            if (snackpackQty > 0 && !order.includes("Snack Pack")) {
-                orderDescription = `${snackpackQty} x 50g Snack Pack${snackpackQty > 1 ? 's' : ''} @ R35 each`;
-                if (order.trim() !== "") {
-                    orderDescription += `, ${order}`;
-                }
-            }
-            
-            const newCustomer = {
-                name,
-                phone,
-                order: orderDescription,
-                total,
-                paid,
-                status: finalStatus,
-                snackpacks: snackpackQty,
-                date: new Date().toISOString().split('T')[0]
+            allOrders = [];
+            groupedCustomers = {};
+            let stats = {
+                collectedProfit: 0,
+                potentialOwed: 0,
+                totalRevenue: 0,
+                totalPacks: 0,
+                flavors: { Chilli: 0, Medium: 0 },
+                customers: {},
+                salesByDate: {}
             };
             
-            let savedCustomer;
-            if (isSupabaseConnected) {
-                savedCustomer = await saveCustomerToSupabase(newCustomer);
+            let debtHTML = "";
+
+            querySnapshot.forEach((orderDoc) => {
+                const data = orderDoc.data();
+                const id = orderDoc.id;
+                const dateKey = data.timestamp.toDate().toDateString();
+
+                allOrders.push({ id, ...data });
+
+                if (!groupedCustomers[data.customer]) groupedCustomers[data.customer] = [];
+                groupedCustomers[data.customer].push({ id, ...data });
+
+                stats.totalRevenue += data.totalSales;
+                stats.totalPacks += data.qty;
+                stats.flavors[data.flavor] += data.qty;
+                stats.customers[data.customer] = (stats.customers[data.customer] || 0) + data.totalSales;
+                stats.salesByDate[dateKey] = (stats.salesByDate[dateKey] || 0) + data.totalSales;
+
+                if (data.paid) {
+                    stats.collectedProfit += data.totalProfit;
+                } else {
+                    stats.potentialOwed += data.totalSales;
+                    debtHTML += `
+                        <div class="bg-red-900/30 border border-red-600/50 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3 shadow-lg">
+                            <div>
+                                <p class="font-bold text-red-300">${data.customer}</p>
+                                <p class="text-xs text-red-400">OWES R${data.totalSales} • ${data.flavor} × ${data.qty}</p>
+                            </div>
+                            <button onclick="markAsPaid('${id}')" class="w-full sm:w-auto bg-green-600 hover:bg-green-500 text-white text-xs px-6 py-3 rounded-full font-bold uppercase shadow">Mark Paid</button>
+                        </div>`;
+                }
+            });
+
+            const topCustEntry = Object.entries(stats.customers).sort((a,b) => b[1] - a[1])[0];
+            const topCust = topCustEntry ? topCustEntry[0] : "N/A";
+
+            document.getElementById('stat-profit').innerText = `R${stats.collectedProfit.toFixed(2)}`;
+            document.getElementById('stat-owed').innerText = `R${stats.potentialOwed.toFixed(2)}`;
+            document.getElementById('stat-revenue').innerText = `R${stats.totalRevenue.toFixed(2)}`;
+            document.getElementById('stat-top').innerText = topCust;
+            document.getElementById('stat-flavor').innerText = stats.flavors.Chilli >= stats.flavors.Medium ? "Chilli 🌶️" : "Medium 🐂";
+            document.getElementById('stat-packs').innerText = stats.totalPacks;
+            
+            document.getElementById('debtorList').innerHTML = debtHTML || "<p class='text-gray-500 text-center py-8 italic'>No outstanding payments 🎉</p>";
+
+            const sortedCustomers = Object.keys(groupedCustomers).sort();
+            renderCustomerHistory(sortedCustomers);
+            renderCharts(stats);
+        }
+
+        function renderCustomerHistory(customerList) {
+            let historyHTML = "";
+            if (customerList.length === 0) {
+                historyHTML = '<div class="p-8 text-center text-gray-500 italic">No customers found</div>';
             } else {
-                // Save to local storage
-                const localCustomers = JSON.parse(localStorage.getItem('kyt_customers') || '[]');
-                const newId = localCustomers.length > 0 ? Math.max(...localCustomers.map(c => c.id)) + 1 : 1;
-                savedCustomer = { ...newCustomer, id: newId };
-                localCustomers.push(savedCustomer);
-                localStorage.setItem('kyt_customers', JSON.stringify(localCustomers));
+                customerList.forEach(customer => {
+                    const orders = groupedCustomers[customer];
+                    const totalSpent = orders.reduce((sum, o) => sum + o.totalSales, 0);
+                    const totalOwed = orders.filter(o => !o.paid).reduce((sum, o) => sum + o.totalSales, 0);
+
+                    historyHTML += `
+                        <div class="mb-6 bg-zinc-800/30 rounded-2xl overflow-hidden shadow-lg">
+                            <div class="p-5 bg-zinc-800/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                <div>
+                                    <p class="font-bold text-xl text-yellow-400">${customer}</p>
+                                    <p class="text-sm text-gray-400">Total: R${totalSpent} ${totalOwed > 0 ? `• Owes R${totalOwed}` : ''}</p>
+                                </div>
+                                <p class="text-sm text-gray-500">${orders.length} order${orders.length > 1 ? 's' : ''}</p>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full min-w-[600px]">
+                                    <tbody>`;
+                    orders.sort((a,b) => b.timestamp.toDate() - a.timestamp.toDate()).forEach(order => {
+                        const date = order.timestamp.toDate().toLocaleDateString();
+                        historyHTML += `
+                            <tr class="border-b border-white/5 hover:bg-white/5">
+                                <td class="p-4 text-sm">${date}</td>
+                                <td class="p-4 text-sm">${order.flavor} × ${order.qty}</td>
+                                <td class="p-4 text-sm">R${order.totalSales}</td>
+                                <td class="p-4 text-sm"><span class="${order.paid ? 'text-green-400' : 'text-yellow-400'} font-bold">${order.paid ? '✅ Paid' : '⏳ Pending'}</span></td>
+                                <td class="p-4 text-right">
+                                    <div class="flex flex-wrap justify-end gap-2">
+                                        <button onclick="editCustomerName('${order.id}', '${order.customer.replace(/'/g, "\\'")}')" class="text-purple-400 hover:text-purple-300 text-xs px-2 py-1">Name</button>
+                                        <button onclick="changeFlavor('${order.id}', '${order.flavor}')" class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1">Flavor</button>
+                                        <button onclick="deleteOrder('${order.id}')" class="text-red-400 hover:text-red-300 text-xs px-2 py-1">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>`;
+                    });
+                    historyHTML += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>`;
+                });
             }
-            
-            if (savedCustomer) {
-                customers.push(savedCustomer);
-                document.getElementById('customer-form').reset();
-                customerForm.style.display = 'none';
-                addCustomerBtn.style.display = 'block';
-                displayCustomers(selectedCustomerType);
-                updateStats();
-                alert(`Customer ${name} added successfully!`);
-            }
+            document.getElementById('customerHistory').innerHTML = historyHTML;
         }
 
-        // Set up event listeners
-        function setupEventListeners() {
-            // Category tabs
-            categoryTabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const category = this.getAttribute('data-category');
-                    categoryTabs.forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    displayProducts(category);
-                });
+        function renderCharts(stats) {
+            // Charts unchanged (they are already responsive)
+            const flavorCtx = document.getElementById('flavorChart').getContext('2d');
+            if (window.flavorChartInstance) window.flavorChartInstance.destroy();
+            window.flavorChartInstance = new Chart(flavorCtx, {
+                type: 'doughnut',
+                data: { labels: ['Chilli 🌶️', 'Medium 🐂'], datasets: [{ data: [stats.flavors.Chilli, stats.flavors.Medium], backgroundColor: ['#EF4444', '#3B82F6'], borderWidth: 0 }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#D1D5DB' } } } }
             });
-            
-            // Customer tabs
-            customerTabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const customerType = this.getAttribute('data-customer-type');
-                    customerTabs.forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    displayCustomers(customerType);
-                });
+
+            const sortedCust = Object.entries(stats.customers).sort((a,b) => b[1]-a[1]).slice(0,5);
+            const custCtx = document.getElementById('topCustomersChart').getContext('2d');
+            if (window.topCustChart) window.topCustChart.destroy();
+            window.topCustChart = new Chart(custCtx, {
+                type: 'bar',
+                data: { labels: sortedCust.map(c => c[0]), datasets: [{ label: 'Sales (R)', data: sortedCust.map(c => c[1]), backgroundColor: '#FBBF24' }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#D1D5DB' } }, x: { ticks: { color: '#D1D5DB' } } } }
             });
-            
-            // Add customer button
-            addCustomerBtn.addEventListener('click', function() {
-                customerForm.style.display = 'block';
-                this.style.display = 'none';
-                document.getElementById('customer-name').focus();
-            });
-            
-            // Auto-calculate total when snackpack quantity changes
-            document.getElementById('snackpack-qty').addEventListener('input', function() {
-                const qty = parseInt(this.value) || 0;
-                const totalInput = document.getElementById('customer-total');
-                const snackpackTotal = qty * 35;
-                
-                const currentTotal = parseFloat(totalInput.value) || 0;
-                if (currentTotal === 0 || currentTotal === snackpackTotal) {
-                    totalInput.value = snackpackTotal.toFixed(2);
-                }
-            });
-            
-            // Save customer button
-            saveCustomerBtn.addEventListener('click', addNewCustomer);
-            
-            // Cancel customer button
-            cancelCustomerBtn.addEventListener('click', function() {
-                customerForm.style.display = 'none';
-                addCustomerBtn.style.display = 'block';
-                document.getElementById('customer-form').reset();
-            });
-            
-            // Sync data button
-            syncDataBtn.addEventListener('click', syncData);
-            
-            // Payment buttons
-            paymentButtons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    paymentButtons.forEach(b => b.style.opacity = '0.8');
-                    this.style.opacity = '1';
-                    this.style.boxShadow = '0 0 0 3px rgba(46, 125, 50, 0.3)';
-                    
-                    if (this.id === 'cash-payment') paymentMethod = "Cash";
-                    if (this.id === 'card-payment') paymentMethod = "Credit Card";
-                    if (this.id === 'eft-payment') paymentMethod = "EFT";
-                });
-            });
-            
-            // Complete sale button
-            completeSaleBtn.addEventListener('click', completeSale);
-            
-            // New order button
-            newOrderBtn.addEventListener('click', function() {
-                currentOrder = [];
-                paymentMethod = "";
-                paymentButtons.forEach(b => {
-                    b.style.opacity = '0.8';
-                    b.style.boxShadow = 'none';
-                });
-                updateOrderDisplay();
-                updateOrderSummary();
-                receiptContentElement.textContent = "";
-            });
-            
-            // Print receipt button
-            printReceiptBtn.addEventListener('click', function() {
-                if (!receiptContent) {
-                    alert("No receipt to print. Please complete a sale first.");
-                    return;
-                }
-                
-                const printWindow = window.open('', '_blank');
-                printWindow.document.write(`
-                    <html>
-                        <head>
-                            <title>KYT Halaal Biltong Receipt</title>
-                            <style>
-                                body { font-family: 'Courier New', monospace; padding: 20px; }
-                                pre { white-space: pre-wrap; }
-                            </style>
-                        </head>
-                        <body>
-                            <pre>${receiptContent}</pre>
-                            <script>
-                                window.onload = function() {
-                                    window.print();
-                                };
-                            <\/script>
-                        </body>
-                    </html>
-                `);
-                printWindow.document.close();
-            });
-            
-            // Clear order button
-            clearOrderBtn.addEventListener('click', function() {
-                if (currentOrder.length === 0) {
-                    alert("Order is already empty.");
-                    return;
-                }
-                
-                if (confirm("Are you sure you want to clear the current order?")) {
-                    currentOrder = [];
-                    updateOrderDisplay();
-                    updateOrderSummary();
-                }
-            });
-            
-            // Payment modal buttons
-            closePaymentModal.addEventListener('click', function() {
-                paymentModal.style.display = 'none';
-                currentCustomerId = null;
-            });
-            
-            cancelPaymentBtn.addEventListener('click', function() {
-                paymentModal.style.display = 'none';
-                currentCustomerId = null;
-            });
-            
-            confirmPaymentBtn.addEventListener('click', async function() {
-                const receivedAmount = parseFloat(receivedAmountInput.value);
-                if (isNaN(receivedAmount) || receivedAmount <= 0) {
-                    alert("Please enter a valid amount received.");
-                    return;
-                }
-                
-                const customer = customers.find(c => c.id === currentCustomerId);
-                if (!customer) return;
-                
-                const owedAmount = customer.total - customer.paid;
-                
-                if (receivedAmount > owedAmount) {
-                    alert("Received amount cannot exceed owed amount. Please enter the correct amount.");
-                    return;
-                }
-                
-                // Update customer
-                customer.paid += receivedAmount;
-                if (customer.paid >= customer.total) {
-                    customer.status = "paid";
-                }
-                
-                // Update in database
-                const updates = { paid: customer.paid, status: customer.status };
-                if (isSupabaseConnected) {
-                    await updateCustomerInSupabase(currentCustomerId, updates);
-                } else {
-                    // Update in local storage
-                    const localCustomers = JSON.parse(localStorage.getItem('kyt_customers') || '[]');
-                    const index = localCustomers.findIndex(c => c.id === currentCustomerId);
-                    if (index !== -1) {
-                        localCustomers[index] = { ...localCustomers[index], ...updates };
-                        localStorage.setItem('kyt_customers', JSON.stringify(localCustomers));
-                    }
-                }
-                
-                // Close modal and refresh
-                paymentModal.style.display = 'none';
-                displayCustomers(selectedCustomerType);
-                updateStats();
-                
-                const change = receivedAmount - owedAmount;
-                if (change > 0) {
-                    alert(`Payment of R ${receivedAmount.toFixed(2)} received successfully! Change: R ${change.toFixed(2)}`);
-                } else {
-                    alert(`Payment of R ${receivedAmount.toFixed(2)} received successfully!`);
-                }
-                
-                currentCustomerId = null;
-            });
-            
-            // Close modal when clicking outside
-            window.addEventListener('click', function(event) {
-                if (event.target === paymentModal) {
-                    paymentModal.style.display = 'none';
-                    currentCustomerId = null;
-                }
+
+            const dates = Object.keys(stats.salesByDate).sort((a,b) => new Date(a) - new Date(b)).slice(-10);
+            const salesData = dates.map(d => stats.salesByDate[d]);
+            const salesCtx = document.getElementById('salesOverTimeChart').getContext('2d');
+            if (window.salesChart) window.salesChart.destroy();
+            window.salesChart = new Chart(salesCtx, {
+                type: 'line',
+                data: { labels: dates.map(d => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })), datasets: [{ label: 'Daily Sales (R)', data: salesData, borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.2)', fill: true, tension: 0.4 }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#D1D5DB' } }, x: { ticks: { color: '#D1D5DB' } } } }
             });
         }
 
-        // Update date and time display
-        function updateDateTime() {
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
-            const timeStr = now.toLocaleTimeString('en-US', { 
-                hour12: true, 
-                hour: '2-digit', 
-                minute: '2-digit',
-                second: '2-digit'
-            });
-            
-            document.getElementById('current-date').textContent = dateStr;
-            document.getElementById('current-time').textContent = timeStr;
-        }
-
-        // Initialize the app when DOM is loaded
-        document.addEventListener('DOMContentLoaded', init);
+        window.onload = loadData;
     </script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-black to-gray-900 text-gray-200 font-sans antialiased min-h-screen">
+
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <h1 class="text-3xl sm:text-4xl font-black text-yellow-400 italic text-center mb-8 tracking-wider">KTY HALAAL BILTONG</h1>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
+                <p class="text-xs uppercase text-gray-400 tracking-widest">Profit</p>
+                <p id="stat-profit" class="text-lg sm:text-2xl font-black text-green-400 mt-1">R0.00</p>
+            </div>
+            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
+                <p class="text-xs uppercase text-gray-400 tracking-widest">Owed</p>
+                <p id="stat-owed" class="text-lg sm:text-2xl font-black text-red-400 mt-1">R0.00</p>
+            </div>
+            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
+                <p class="text-xs uppercase text-gray-400 tracking-widest">Revenue</p>
+                <p id="stat-revenue" class="text-lg sm:text-2xl font-black text-cyan-400 mt-1">R0.00</p>
+            </div>
+            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
+                <p class="text-xs uppercase text-gray-400 tracking-widest">Top Customer</p>
+                <p id="stat-top" class="text-sm sm:text-lg font-black text-yellow-400 mt-1 truncate">---</p>
+            </div>
+            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
+                <p class="text-xs uppercase text-gray-400 tracking-widest">Best Flavor</p>
+                <p id="stat-flavor" class="text-lg sm:text-2xl font-black text-blue-400 mt-1">---</p>
+            </div>
+            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
+                <p class="text-xs uppercase text-gray-400 tracking-widest">Packs Sold</p>
+                <p id="stat-packs" class="text-lg sm:text-2xl font-black text-purple-400 mt-1">0</p>
+            </div>
+        </div>
+
+        <!-- New Order Form -->
+        <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 sm:p-8 rounded-3xl border border-yellow-500/30 shadow-2xl mb-8">
+            <h2 class="text-2xl font-black text-yellow-400 mb-6 text-center sm:text-left">Log New Order</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input id="customer" type="text" placeholder="Customer Name" class="bg-black/50 border border-white/20 p-4 rounded-2xl focus:border-yellow-400 outline-none text-gray-200">
+                <input id="phone" type="text" placeholder="Phone / WhatsApp" class="bg-black/50 border border-white/20 p-4 rounded-2xl focus:border-yellow-400 outline-none text-gray-200">
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <select id="flavor" class="bg-black/50 border border-white/20 p-4 rounded-2xl text-gray-200">
+                    <option value="Chilli">Chilli 🌶️</option>
+                    <option value="Medium">Medium 🐂</option>
+                </select>
+                <input id="qty" type="number" min="1" placeholder="Quantity" class="bg-black/50 border border-white/20 p-4 rounded-2xl text-center text-gray-200">
+            </div>
+            <label class="flex items-center gap-4 mt-5 bg-black/30 p-4 rounded-2xl border border-white/10 cursor-pointer">
+                <input id="isPaid" type="checkbox" class="w-6 h-6 accent-green-500 rounded">
+                <span class="font-bold uppercase text-gray-300">Paid upfront?</span>
+            </label>
+            <button onclick="saveOrder()" class="w-full mt-6 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-bold py-4 rounded-2xl uppercase tracking-wider shadow-xl">Add Order</button>
+        </div>
+
+        <!-- Pending Payments -->
+        <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 sm:p-8 rounded-3xl border border-red-600/20 shadow-2xl mb-8">
+            <h3 class="text-xl font-black text-red-400 uppercase tracking-widest mb-6 text-center sm:text-left">Pending Payments</h3>
+            <div id="debtorList" class="space-y-3"></div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-3xl border border-white/10 shadow-2xl">
+                <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest mb-4 text-center">Flavor Split</h3>
+                <canvas id="flavorChart"></canvas>
+            </div>
+            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-3xl border border-white/10 shadow-2xl">
+                <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest mb-4 text-center">Top 5 Customers</h3>
+                <canvas id="topCustomersChart"></canvas>
+            </div>
+            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-3xl border border-white/10 shadow-2xl">
+                <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest mb-4 text-center">Sales Trend (Last 10 Days)</h3>
+                <canvas id="salesOverTimeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Customer History -->
+        <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h3 class="text-xl font-black text-gray-300 uppercase tracking-widest">Customer History</h3>
+                <input id="searchInput" onkeyup="searchCustomers()" type="text" placeholder="Search customer..." class="w-full sm:w-64 bg-black/50 border border-white/20 px-4 py-3 rounded-xl focus:border-yellow-400 outline-none text-gray-200">
+            </div>
+            <div id="customerHistory" class="space-y-6"></div>
+        </div>
+
+        <!-- Modals remain the same -->
+        <!-- Edit Name Modal -->
+        <div id="nameModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4">
+            <div class="bg-zinc-900 p-6 rounded-3xl border border-purple-500/50 shadow-2xl w-full max-w-sm">
+                <h3 class="text-xl font-black text-purple-400 mb-5 text-center">Edit Customer Name</h3>
+                <input id="newNameInput" type="text" class="w-full bg-black/50 border border-white/20 p-4 rounded-2xl focus:border-purple-400 outline-none text-gray-200 mb-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="confirmChangeName()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-2xl uppercase">Save</button>
+                    <button onclick="closeNameModal()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-2xl uppercase">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Flavor Modal -->
+        <div id="flavorModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4">
+            <div class="bg-zinc-900 p-6 rounded-3xl border border-yellow-500/50 shadow-2xl w-full max-w-sm">
+                <h3 class="text-xl font-black text-yellow-400 mb-5 text-center">Change Flavor</h3>
+                <select id="flavorSelect" class="w-full bg-black/50 border border-white/20 p-4 rounded-2xl text-gray-200 mb-6">
+                    <option value="Chilli">Chilli 🌶️</option>
+                    <option value="Medium">Medium 🐂</option>
+                </select>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="confirmChangeFlavor()" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-2xl uppercase">Save</button>
+                    <button onclick="closeFlavorModal()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-2xl uppercase">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Modal -->
+        <div id="deleteModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4">
+            <div class="bg-zinc-900 p-6 rounded-3xl border border-red-500/50 shadow-2xl w-full max-w-sm">
+                <h3 class="text-xl font-black text-red-400 mb-5 text-center">Delete Order?</h3>
+                <p class="text-gray-300 mb-8 text-center">This action cannot be undone.</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="confirmDelete()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-2xl uppercase">Delete</button>
+                    <button onclick="closeDeleteModal()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-2xl uppercase">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
