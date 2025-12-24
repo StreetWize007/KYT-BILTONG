@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KTY HALAAL BILTONG | Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KTY HALAAL BILTONG | Pro Manager</title>
     
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,16 +14,31 @@
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js-adapter-date-fns/3.0.0/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: {
-                        glass: "rgba(255, 255, 255, 0.05)",
-                        glassBorder: "rgba(255, 255, 255, 0.1)",
-                        accent: "#F59E0B", // Amber 500
+                        glass: "rgba(255, 255, 255, 0.03)",
+                        glassBorder: "rgba(255, 255, 255, 0.08)",
+                        glassHover: "rgba(255, 255, 255, 0.08)",
+                        accent: "#F59E0B", 
+                        accentHover: "#D97706",
+                        success: "#10B981",
+                        danger: "#EF4444"
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-up': 'slideUp 0.3s ease-out forwards',
+                        'fade-in': 'fadeIn 0.2s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } }
                     }
                 }
             }
@@ -32,38 +46,65 @@
     </script>
 
     <style>
-        body { background-color: #0f0f11; background-image: radial-gradient(circle at 50% 0%, #27272a 0%, transparent 60%); }
+        body { 
+            background-color: #09090b; 
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(245, 158, 11, 0.08), transparent 25%), 
+                radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.05), transparent 25%);
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Glassmorphism Utilities */
         .glass-panel {
             background: rgba(24, 24, 27, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.08);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         }
+        
         .glass-input {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255,255,255,0.08);
             color: white;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
         }
         .glass-input:focus {
             border-color: #F59E0B;
-            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
             outline: none;
+            background: rgba(0, 0, 0, 0.6);
         }
+
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #18181b; }
-        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
         
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; opacity: 0; transform: translateY(10px); }
-        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+        /* Loading Spinner */
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-left-color: #F59E0B;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Mobile Table Card View */
+        .mobile-card { display: none; }
+        @media (max-width: 768px) {
+            .desktop-table { display: none; }
+            .mobile-card { display: block; }
+        }
     </style>
 
+    <!-- Firebase Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, updateDoc, doc, deleteDoc, increment, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -79,41 +120,104 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        // --- App State & Settings ---
-        // Default settings, overridden by localStorage if available
+        // --- App State ---
         let appSettings = JSON.parse(localStorage.getItem('ktySettings')) || {
             pricePerPack: 35,
-            costPerPack: 16.25
+            costPerPack: 16.25,
+            stockChilli: 50,
+            stockMedium: 50,
+            lowStockThreshold: 10
         };
 
         let allOrders = [];
-        let groupedCustomers = {};
-        let currentFilter = 'all'; // all, pending, paid
+        let inventory = { ...appSettings }; // Local cache
+        let currentFilter = 'all'; 
+        let dateFilter = 'all'; // all, thisMonth, lastMonth
+        let selectedOrderIds = new Set();
 
-        // --- Helper: Update Settings ---
-        window.saveSettings = () => {
-            const price = parseFloat(document.getElementById('setting-price').value);
-            const cost = parseFloat(document.getElementById('setting-cost').value);
+        // --- Helper Functions ---
+        
+        function formatCurrency(amount) {
+            return `R${parseFloat(amount).toFixed(2)}`;
+        }
+
+        function formatDate(timestamp) {
+            if(!timestamp) return '-';
+            return new Date(timestamp.seconds * 1000).toLocaleDateString(undefined, {
+                day: 'numeric', month: 'short', year: '2-digit'
+            });
+        }
+
+        window.showToast = (message, type = "info") => {
+            const toast = document.createElement('div');
+            const colors = {
+                success: "bg-emerald-600 border-emerald-500",
+                error: "bg-red-600 border-red-500",
+                info: "bg-blue-600 border-blue-500",
+                warning: "bg-amber-600 border-amber-500"
+            };
+            const icons = {
+                success: "ph-check-circle",
+                error: "ph-warning-circle",
+                info: "ph-info",
+                warning: "ph-warning"
+            };
+
+            toast.className = `fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-4 rounded-xl border shadow-2xl text-white font-medium z-[60] flex items-center gap-3 transition-all duration-300 translate-y-20 opacity-0 ${colors[type]} min-w-[300px] justify-center`;
+            toast.innerHTML = `<i class="ph ${icons[type]} text-xl"></i> <span>${message}</span>`;
             
-            if (isNaN(price) || isNaN(cost)) {
-                showToast("Invalid price values", "error");
-                return;
+            document.body.appendChild(toast);
+            
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-20', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        };
+
+        // --- Inventory Management ---
+        
+        window.updateStock = async (flavor, change) => {
+            const key = flavor === 'Chilli' ? 'stockChilli' : 'stockMedium';
+            const newStock = inventory[key] + change;
+            
+            if(newStock < 0) return showToast("Not enough stock!", "error");
+
+            // Optimistic Update
+            inventory[key] = newStock;
+            updateInventoryUI();
+
+            // Persist to DB (using a specific 'config' doc)
+            try {
+                await setDoc(doc(db, "config", "inventory"), {
+                    stockChilli: inventory.stockChilli,
+                    stockMedium: inventory.stockMedium
+                }, { merge: true });
+                
+                // Update local settings
+                appSettings[key] = newStock;
+                localStorage.setItem('ktySettings', JSON.stringify(appSettings));
+            } catch(e) {
+                showToast("Failed to update stock", "error");
             }
+        };
 
-            appSettings.pricePerPack = price;
-            appSettings.costPerPack = cost;
-            localStorage.setItem('ktySettings', JSON.stringify(appSettings));
+        function updateInventoryUI() {
+            document.getElementById('inv-chilli').innerText = inventory.stockChilli;
+            document.getElementById('inv-medium').innerText = inventory.stockMedium;
             
-            document.getElementById('settingsModal').classList.add('hidden');
-            showToast("Settings saved! Reloading data...", "success");
-            loadData(); // Recalculate stats with new prices
-        };
-
-        window.openSettings = () => {
-            document.getElementById('setting-price').value = appSettings.pricePerPack;
-            document.getElementById('setting-cost').value = appSettings.costPerPack;
-            document.getElementById('settingsModal').classList.remove('hidden');
-        };
+            // Low stock warnings
+            const chilliEl = document.getElementById('inv-chilli-wrap');
+            const mediumEl = document.getElementById('inv-medium-wrap');
+            
+            chilliEl.className = inventory.stockChilli <= appSettings.lowStockThreshold 
+                ? "text-red-400 animate-pulse" : "text-gray-400";
+            mediumEl.className = inventory.stockMedium <= appSettings.lowStockThreshold 
+                ? "text-red-400 animate-pulse" : "text-gray-400";
+        }
 
         // --- Core Functions ---
 
@@ -130,12 +234,19 @@
                 return;
             }
 
+            // Check Stock
+            const stockKey = flavor === 'Chilli' ? 'stockChilli' : 'stockMedium';
+            if(inventory[stockKey] < qty) {
+                return showToast(`Not enough ${flavor} stock! Only ${inventory[stockKey]} left.`, "error");
+            }
+
             const btn = document.getElementById('saveBtn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = `<i class="ph ph-spinner animate-spin"></i> Saving...`;
+            btn.innerHTML = `<i class="ph ph-spinner animate-spin"></i> Processing...`;
 
             try {
+                // 1. Save Order
                 await addDoc(collection(db, "orders"), {
                     customer, phone, flavor, qty, notes,
                     totalSales: qty * appSettings.pricePerPack,
@@ -143,13 +254,19 @@
                     paid: isPaid,
                     timestamp: new Date()
                 });
+
+                // 2. Deduct Stock
+                await updateStock(flavor, -qty * -1); // Logic handled inside updateStock to invert for deduction
+
                 showToast("Order logged successfully!", "success");
+                
                 // Reset form
                 document.getElementById('customer').value = '';
                 document.getElementById('phone').value = '';
-                document.getElementById('qty').value = '';
+                document.getElementById('qty').value = '1';
                 document.getElementById('notes').value = '';
                 document.getElementById('isPaid').checked = false;
+                
                 await loadData();
             } catch (e) { 
                 console.error(e);
@@ -162,34 +279,66 @@
 
         window.togglePaid = async (orderId, currentState) => {
             try {
-                // Optimistic UI update could go here, but simple reload is safer for consistency
                 await updateDoc(doc(db, "orders", orderId), { paid: !currentState });
+                showToast("Payment status updated", "success");
                 await loadData();
             } catch(e) { showToast("Update failed", "error"); }
         };
 
         window.deleteOrder = (orderId) => {
-            const modal = document.getElementById('deleteModal');
-            modal.dataset.orderId = orderId;
-            modal.classList.remove('hidden');
+            if(confirm("Are you sure you want to delete this order?")) {
+                performDelete(orderId);
+            }
         };
 
-        window.confirmDelete = async () => {
-            const modal = document.getElementById('deleteModal');
-            const orderId = modal.dataset.orderId;
+        async function performDelete(orderId) {
             try {
+                // Optional: Restore stock? For simplicity, we won't auto-restore to avoid complications if stock changed since sale.
+                // Ideally, you'd fetch the order qty first, then delete, then restore.
                 await deleteDoc(doc(db, "orders", orderId));
-                modal.classList.add('hidden');
                 showToast("Order deleted.", "success");
                 await loadData();
             } catch(e) { showToast("Could not delete", "error"); }
+        }
+
+        window.bulkDelete = async () => {
+            if(selectedOrderIds.size === 0) return;
+            if(!confirm(`Delete ${selectedOrderIds.size} selected orders?`)) return;
+
+            const btn = document.getElementById('bulkActionBtn');
+            btn.innerHTML = `<i class="ph ph-spinner animate-spin"></i>`;
+            
+            let failed = 0;
+            for(const id of selectedOrderIds) {
+                try { await deleteDoc(doc(db, "orders", id)); } 
+                catch(e) { failed++; }
+            }
+            
+            showToast(failed > 0 ? `Deleted with ${failed} errors` : "Orders deleted", failed > 0 ? "warning" : "success");
+            selectedOrderIds.clear();
+            await loadData();
         };
+
+        window.toggleSelection = (id) => {
+            if(selectedOrderIds.has(id)) selectedOrderIds.delete(id);
+            else selectedOrderIds.add(id);
+            renderBulkActions();
+        };
+
+        function renderBulkActions() {
+            const bar = document.getElementById('bulkActionBar');
+            if(selectedOrderIds.size > 0) {
+                bar.classList.remove('translate-y-full');
+                document.getElementById('bulkCount').innerText = selectedOrderIds.size;
+            } else {
+                bar.classList.add('translate-y-full');
+            }
+        }
 
         window.editOrder = (orderId) => {
             const order = allOrders.find(o => o.id === orderId);
             if (!order) return;
 
-            // Populate Edit Modal
             document.getElementById('editModal').dataset.orderId = orderId;
             document.getElementById('editCustomer').value = order.customer;
             document.getElementById('editFlavor').value = order.flavor;
@@ -225,7 +374,6 @@
 
         window.setFilter = (filterType) => {
             currentFilter = filterType;
-            // Update buttons
             document.querySelectorAll('.filter-btn').forEach(b => {
                 if(b.dataset.filter === filterType) {
                     b.classList.remove('bg-zinc-800', 'text-gray-400');
@@ -235,17 +383,24 @@
                     b.classList.remove('bg-amber-500', 'text-black');
                 }
             });
-            renderCustomerHistory();
+            renderUI();
+        };
+
+        window.setDateFilter = (filter) => {
+            dateFilter = filter;
+            document.getElementById('dateFilterLabel').innerText = filter === 'all' ? 'All Time' : filter === 'thisMonth' ? 'This Month' : 'Last Month';
+            renderUI();
         };
 
         window.exportToCSV = () => {
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Date,Customer,Phone,Flavor,Qty,Total,Status,Notes\n";
             
-            allOrders.forEach(o => {
+            const filtered = getFilteredOrders();
+            
+            filtered.forEach(o => {
                 const date = o.timestamp.toDate().toLocaleDateString();
                 const status = o.paid ? "PAID" : "PENDING";
-                // Escape commas in notes
                 const safeNotes = `"${(o.notes || "").replace(/"/g, '""')}"`;
                 const row = `${date},${o.customer},${o.phone || ''},${o.flavor},${o.qty},${o.totalSales},${status},${safeNotes}`;
                 csvContent += row + "\n";
@@ -260,214 +415,257 @@
             document.body.removeChild(link);
         };
 
-        // --- UI Rendering ---
+        window.backupData = async () => {
+            const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
+            const snapshot = await getDocs(q);
+            const data = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `kty_backup_${new Date().toISOString().slice(0,10)}.json`;
+            link.click();
+        };
 
-        function showToast(message, type = "info") {
-            const toast = document.createElement('div');
-            const colors = {
-                success: "bg-green-600 shadow-green-900/20",
-                error: "bg-red-600 shadow-red-900/20",
-                info: "bg-blue-600 shadow-blue-900/20"
-            };
-            const icons = {
-                success: "ph-check-circle",
-                error: "ph-warning-circle",
-                info: "ph-info"
-            };
+        // --- WhatsApp Integration ---
+        window.openWhatsApp = (order) => {
+            let msg = `Hi ${order.customer}, this is KTY Biltong. `;
+            if(!order.paid) msg += `Regarding your pending order of ${order.qty}x ${order.flavor} (R${order.totalSales}). `;
+            else msg += `Thanks for your recent order! `;
+            
+            // Clean phone number (remove non-digits)
+            let phone = order.phone ? order.phone.replace(/\D/g,'') : '';
+            
+            if(phone) {
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+            } else {
+                showToast("No phone number saved", "warning");
+            }
+        };
 
-            toast.className = `fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl text-white font-medium z-50 flex items-center gap-3 transition-all duration-300 translate-y-10 opacity-0 ${colors[type]}`;
-            toast.innerHTML = `<i class="ph ${icons[type]} text-xl"></i> ${message}`;
+        // --- Data Loading & Filtering ---
+
+        function getFilteredOrders() {
+            const now = new Date();
+            let start = new Date(0); // Beginning of time
             
-            document.body.appendChild(toast);
-            
-            // Animate in
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-y-10', 'opacity-0');
+            if(dateFilter === 'thisMonth') {
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+            } else if (dateFilter === 'lastMonth') {
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                // End of last month is effectively start of this month
+            }
+
+            // Filter Logic
+            return allOrders.filter(o => {
+                const oDate = o.timestamp.toDate();
+                
+                // Date Filter
+                let datePass = true;
+                if(dateFilter === 'thisMonth') {
+                    datePass = oDate >= start;
+                } else if (dateFilter === 'lastMonth') {
+                    datePass = oDate >= start && oDate < new Date(now.getFullYear(), now.getMonth(), 1);
+                }
+
+                // Status Filter
+                let statusPass = true;
+                if(currentFilter === 'pending') statusPass = !o.paid;
+                if(currentFilter === 'paid') statusPass = o.paid;
+
+                return datePass && statusPass;
             });
-
-            setTimeout(() => {
-                toast.classList.add('translate-y-10', 'opacity-0');
-                setTimeout(() => document.body.removeChild(toast), 300);
-            }, 3000);
         }
 
         async function loadData() {
-            const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
-            const querySnapshot = await getDocs(q);
+            // Show loader
+            const loader = document.getElementById('loadingOverlay');
+            loader.classList.remove('hidden');
+
+            try {
+                // 1. Fetch Inventory
+                const invDoc = await getDoc(doc(db, "config", "inventory"));
+                if(invDoc.exists()) {
+                    inventory = { ...appSettings, ...invDoc.data() };
+                    // Sync back to local settings to keep consistent
+                    appSettings.stockChilli = inventory.stockChilli;
+                    appSettings.stockMedium = inventory.stockMedium;
+                }
+                updateInventoryUI();
+
+                // 2. Fetch Orders
+                const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                allOrders = [];
+                querySnapshot.forEach((doc) => {
+                    allOrders.push({ id: doc.id, ...doc.data() });
+                });
+
+                renderUI();
+
+            } catch (e) {
+                console.error(e);
+                showToast("Error loading data", "error");
+            } finally {
+                setTimeout(() => loader.classList.add('hidden'), 500);
+            }
+        }
+
+        function renderUI() {
+            const orders = getFilteredOrders();
             
-            allOrders = [];
-            groupedCustomers = {};
-            
+            // Calculate Stats
             let stats = {
                 collectedProfit: 0,
                 potentialOwed: 0,
                 totalRevenue: 0,
                 totalPacks: 0,
                 flavors: { Chilli: 0, Medium: 0 },
-                customers: {}, // Total spent
-                salesByDate: {}
+                customers: {}, 
             };
-            
+
             let debtHTML = "";
 
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                const id = doc.id;
-                const dateKey = data.timestamp.toDate().toDateString();
+            orders.forEach(o => {
+                stats.totalRevenue += o.totalSales;
+                stats.totalPacks += o.qty;
+                stats.flavors[o.flavor] = (stats.flavors[o.flavor] || 0) + o.qty;
+                stats.customers[o.customer] = (stats.customers[o.customer] || 0) + o.totalSales;
 
-                allOrders.push({ id, ...data });
-
-                if (!groupedCustomers[data.customer]) groupedCustomers[data.customer] = [];
-                groupedCustomers[data.customer].push({ id, ...data });
-
-                // Stats Calculation
-                stats.totalRevenue += data.totalSales;
-                stats.totalPacks += data.qty;
-                stats.flavors[data.flavor] = (stats.flavors[data.flavor] || 0) + data.qty;
-                
-                stats.customers[data.customer] = (stats.customers[data.customer] || 0) + data.totalSales;
-                stats.salesByDate[dateKey] = (stats.salesByDate[dateKey] || 0) + data.totalSales;
-
-                if (data.paid) {
-                    stats.collectedProfit += data.totalProfit;
-                } else {
-                    stats.potentialOwed += data.totalSales;
-                    debtHTML += `
-                        <div class="glass-panel p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3 border-l-4 border-l-red-500">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2">
-                                    <p class="font-bold text-white">${data.customer}</p>
-                                    ${data.notes ? '<i class="ph ph-note-pencil text-gray-400 text-sm" title="Has notes"></i>' : ''}
-                                </div>
-                                <p class="text-xs text-gray-400 mt-1">
-                                    ${data.flavor} × ${data.qty} <span class="mx-1">•</span> 
-                                    <span class="text-red-400 font-bold">OWES R${data.totalSales.toFixed(2)}</span>
-                                </p>
+                if (o.paid) stats.collectedProfit += o.totalProfit;
+                else {
+                    stats.potentialOwed += o.totalSales;
+                    // Only show pending payments in the sidebar if they are currently relevant
+                    // (Using global list for sidebar to not miss debts just because we filtered view to 'Paid')
+                    if(allOrders.find(x => x.id === o.id).paid === false) {
+                         debtHTML += `
+                        <div class="p-3 rounded-xl border border-white/5 bg-white/5 flex justify-between items-center mb-2 animate-fade-in">
+                            <div>
+                                <div class="font-bold text-sm text-gray-200">${o.customer}</div>
+                                <div class="text-xs text-red-400">R${o.totalSales.toFixed(2)}</div>
                             </div>
-                            <button onclick="togglePaid('${id}', false)" class="group w-full sm:w-auto bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-600/50 text-sm px-4 py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
-                                <i class="ph ph-check-circle text-lg"></i> Mark Paid
-                            </button>
+                            <div class="flex gap-2">
+                                <button onclick="togglePaid('${o.id}', false)" class="bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white p-2 rounded-lg transition-colors" title="Mark Paid"><i class="ph ph-check"></i></button>
+                                <button onclick="openWhatsApp(${JSON.stringify(o).replace(/"/g, '&quot;')})" class="bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white p-2 rounded-lg transition-colors" title="WhatsApp"><i class="ph ph-whatsapp-logo"></i></button>
+                            </div>
                         </div>`;
+                    }
                 }
             });
 
-            // Render Stats
-            const topCustEntry = Object.entries(stats.customers).sort((a,b) => b[1] - a[1])[0];
-            const topCust = topCustEntry ? topCustEntry[0] : "N/A";
-
-            document.getElementById('stat-profit').innerText = `R${stats.collectedProfit.toFixed(2)}`;
-            document.getElementById('stat-owed').innerText = `R${stats.potentialOwed.toFixed(2)}`;
-            document.getElementById('stat-revenue').innerText = `R${stats.totalRevenue.toFixed(2)}`;
-            document.getElementById('stat-top').innerText = topCust;
-            document.getElementById('stat-flavor').innerText = stats.flavors.Chilli >= stats.flavors.Medium ? "Chilli 🌶️" : "Medium 🐂";
+            // Render Stats Cards
+            document.getElementById('stat-profit').innerText = formatCurrency(stats.collectedProfit);
+            document.getElementById('stat-owed').innerText = formatCurrency(stats.potentialOwed);
+            document.getElementById('stat-revenue').innerText = formatCurrency(stats.totalRevenue);
             document.getElementById('stat-packs').innerText = stats.totalPacks;
             
+            // Render Sidebar Debts (Show top 10 owing)
+            const globalDebtors = allOrders.filter(o => !o.paid).sort((a,b) => b.timestamp.toDate() - a.timestamp.toDate()).slice(0, 15);
+            let globalDebtHTML = "";
+            globalDebtors.forEach(o => {
+                globalDebtHTML += `
+                    <div class="p-3 rounded-xl border-l-4 border-l-red-500 bg-white/5 flex justify-between items-center mb-2 group hover:bg-white/10 transition-colors">
+                        <div class="overflow-hidden">
+                            <div class="font-bold text-sm text-gray-200 truncate">${o.customer}</div>
+                            <div class="text-xs text-gray-400 truncate">${o.qty}x ${o.flavor}</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-red-400 font-bold text-sm">R${o.totalSales.toFixed(2)}</span>
+                            <button onclick="openWhatsApp(${JSON.stringify(o).replace(/"/g, '&quot;')})" class="text-green-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph ph-whatsapp-logo text-lg"></i></button>
+                        </div>
+                    </div>`;
+            });
+            
             const debtContainer = document.getElementById('debtorList');
-            if(stats.potentialOwed === 0) {
-                debtContainer.innerHTML = `<div class="text-center py-6 opacity-50"><i class="ph ph-smiley text-4xl mb-2"></i><p>All settled up! 🎉</p></div>`;
+            if(globalDebtors.length === 0) {
+                debtContainer.innerHTML = `<div class="text-center py-4 opacity-50 text-xs"><i class="ph ph-smiley text-2xl mb-1"></i><p>All settled up!</p></div>`;
             } else {
-                debtContainer.innerHTML = debtHTML;
+                debtContainer.innerHTML = globalDebtHTML;
             }
 
-            renderCustomerHistory();
+            renderHistory(orders);
             renderCharts(stats);
         }
 
-        function renderCustomerHistory() {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            
-            // Get customers based on filter
-            let customersToShow = Object.keys(groupedCustomers).sort();
-
-            if (currentFilter === 'pending') {
-                customersToShow = customersToShow.filter(c => groupedCustomers[c].some(o => !o.paid));
-            } else if (currentFilter === 'paid') {
-                customersToShow = customersToShow.filter(c => groupedCustomers[c].every(o => o.paid));
-            }
-
-            // Apply Search
-            if (term) {
-                customersToShow = customersToShow.filter(name => name.toLowerCase().includes(term));
-            }
-
+        function renderHistory(orders) {
             const container = document.getElementById('customerHistory');
-            
-            if (customersToShow.length === 0) {
-                container.innerHTML = `<div class="p-8 text-center text-gray-500 italic fade-in">No records found for this filter.</div>`;
+            selectedOrderIds.clear(); // Reset selection on re-render
+            renderBulkActions();
+
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-gray-500 flex flex-col items-center animate-fade-in"><i class="ph ph-magnifying-glass text-4xl mb-3 opacity-20"></i><p>No orders found.</p></div>`;
                 return;
             }
 
             let html = "";
-            customersToShow.forEach(customer => {
-                // Only show orders relevant to the filter logic inside the customer card
-                let orders = groupedCustomers[customer];
-                // Sorting orders for this customer: Newest first
-                orders.sort((a,b) => b.timestamp.toDate() - a.timestamp.toDate());
+            
+            // Group by Date for headers
+            const grouped = {};
+            orders.forEach(o => {
+                const d = o.timestamp.toDate().toDateString();
+                if(!grouped[d]) grouped[d] = [];
+                grouped[d].push(o);
+            });
 
-                // Filter display orders based on global filter? 
-                // Usually better to show the customer if ANY order matches, but maybe highlight.
-                // For now, let's show all orders for the customer if the customer matches the search/filter criteria.
-
-                const totalSpent = orders.reduce((sum, o) => sum + o.totalSales, 0);
-                const totalOwed = orders.filter(o => !o.paid).reduce((sum, o) => sum + o.totalSales, 0);
-                const isGood = totalOwed === 0;
-
-                html += `
-                    <div class="glass-panel rounded-2xl overflow-hidden mb-6 fade-in hover:border-white/20 transition-colors">
-                        <div class="p-5 bg-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 font-bold text-lg border border-amber-500/30">
-                                    ${customer.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                    <p class="font-bold text-lg text-white">${customer}</p>
-                                    <div class="flex gap-3 text-xs text-gray-400 mt-0.5">
-                                        <span>Total Spent: <b class="text-gray-200">R${totalSpent}</b></span>
-                                        ${!isGood ? `<span class="text-red-400">Owes: <b>R${totalOwed}</b></span>` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm text-gray-400">
-                                <thead class="bg-black/20 text-xs uppercase font-bold text-gray-500">
-                                    <tr>
-                                        <th class="px-6 py-3">Date</th>
-                                        <th class="px-6 py-3">Details</th>
-                                        <th class="px-6 py-3">Amount</th>
-                                        <th class="px-6 py-3">Status</th>
-                                        <th class="px-6 py-3 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-white/5">`;
+            Object.keys(grouped).forEach(dateStr => {
+                html += `<div class="text-xs font-bold text-gray-500 uppercase tracking-widest mt-6 mb-2 pl-2 sticky top-0 bg-[#09090b]/90 backdrop-blur z-10 py-1">${dateStr}</div>`;
                 
-                orders.forEach(order => {
-                    const date = order.timestamp.toDate().toLocaleDateString();
+                grouped[dateStr].forEach((order, idx) => {
                     const statusClass = order.paid ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" : "text-amber-400 bg-amber-400/10 border-amber-400/20";
                     const statusText = order.paid ? "PAID" : "PENDING";
-                    
-                    html += `
-                        <tr class="hover:bg-white/5 transition-colors group">
-                            <td class="px-6 py-4 whitespace-nowrap font-mono text-xs">${date}</td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-200">${order.flavor} <span class="text-gray-500 font-normal">x</span> ${order.qty}</div>
-                                ${order.notes ? `<div class="text-xs text-amber-500/80 mt-1 truncate max-w-[150px]"><i class="ph ph-note"></i> ${order.notes}</div>` : ''}
-                            </td>
-                            <td class="px-6 py-4 font-mono text-gray-300">R${order.totalSales}</td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-1 rounded text-xs font-bold border ${statusClass}">${statusText}</span>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                                    <button onclick="editOrder('${order.id}')" class="p-2 hover:bg-white/10 rounded-lg text-blue-400" title="Edit"><i class="ph ph-pencil-simple"></i></button>
-                                    <button onclick="deleteOrder('${order.id}')" class="p-2 hover:bg-white/10 rounded-lg text-red-400" title="Delete"><i class="ph ph-trash"></i></button>
-                                </div>
-                            </td>
-                        </tr>`;
-                });
+                    const isSelected = selectedOrderIds.has(order.id) ? 'bg-amber-500/10 border-amber-500/50' : '';
+                    const rowBg = idx % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.02]';
 
-                html += `</tbody></table></div></div>`;
+                    // --- Desktop Table Row ---
+                    html += `
+                    <div class="desktop-table group flex items-center px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors ${rowBg} ${isSelected}">
+                        <div class="w-10 px-2">
+                            <input type="checkbox" onchange="toggleSelection('${order.id}')" class="w-4 h-4 rounded border-gray-600 bg-transparent text-amber-500 focus:ring-offset-0 focus:ring-0">
+                        </div>
+                        <div class="w-24 text-xs text-gray-500 font-mono">${formatDate(order.timestamp)}</div>
+                        <div class="flex-1">
+                            <div class="font-bold text-sm text-gray-200">${order.customer}</div>
+                            <div class="text-xs text-gray-500">${order.flavor} × ${order.qty}</div>
+                        </div>
+                        <div class="w-24 text-right font-mono text-sm text-gray-300">R${order.totalSales}</div>
+                        <div class="w-24 px-2">
+                            <span class="px-2 py-1 rounded text-[10px] font-bold border ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="w-32 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            ${order.phone ? `<button onclick="openWhatsApp(${JSON.stringify(order).replace(/"/g, '&quot;')})" class="p-1.5 hover:bg-green-500/20 text-green-400 rounded-lg" title="WhatsApp"><i class="ph ph-whatsapp-logo text-lg"></i></button>` : ''}
+                            <button onclick="editOrder('${order.id}')" class="p-1.5 hover:bg-white/10 text-blue-400 rounded-lg" title="Edit"><i class="ph ph-pencil-simple"></i></button>
+                            <button onclick="deleteOrder('${order.id}')" class="p-1.5 hover:bg-red-500/20 text-red-400 rounded-lg" title="Delete"><i class="ph ph-trash"></i></button>
+                        </div>
+                    </div>`;
+
+                    // --- Mobile Card View ---
+                    html += `
+                    <div class="mobile-card p-4 mb-4 rounded-2xl border border-white/5 bg-white/[0.02] relative animate-slide-up">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-bold text-white text-lg">${order.customer}</h4>
+                                <p class="text-xs text-gray-500 font-mono">${formatDate(order.timestamp)}</p>
+                            </div>
+                            <span class="px-2 py-1 rounded text-[10px] font-bold border ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-t border-white/5">
+                            <div class="text-sm text-gray-300">
+                                ${order.flavor} <span class="text-gray-600">×</span> ${order.qty}
+                            </div>
+                            <div class="font-mono font-bold text-white">R${order.totalSales}</div>
+                        </div>
+                        ${order.notes ? `<div class="mt-2 text-xs text-amber-500/80 bg-amber-500/10 p-2 rounded truncate"><i class="ph ph-note"></i> ${order.notes}</div>` : ''}
+                        
+                        <div class="mt-4 flex gap-3 justify-end">
+                            <input type="checkbox" onchange="toggleSelection('${order.id}')" class="self-center">
+                            ${order.phone ? `<button onclick="openWhatsApp(${JSON.stringify(order).replace(/"/g, '&quot;')})" class="flex-1 py-2 rounded-xl bg-green-600/20 text-green-400 text-sm font-bold flex items-center justify-center gap-2"><i class="ph ph-whatsapp-logo text-lg"></i> Chat</button>` : ''}
+                            <button onclick="editOrder('${order.id}')" class="flex-1 py-2 rounded-xl bg-blue-600/20 text-blue-400 text-sm font-bold">Edit</button>
+                        </div>
+                    </div>`;
+                });
             });
+
             container.innerHTML = html;
         }
 
@@ -491,10 +689,9 @@
                 },
                 options: { 
                     responsive: true, 
-                    cutout: '70%',
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } 
-                    } 
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: { legend: { display: false } } 
                 }
             });
 
@@ -507,332 +704,306 @@
                 data: { 
                     labels: sortedCust.map(c => c[0]), 
                     datasets: [{ 
-                        label: 'Sales (R)', 
+                        label: 'Sales', 
                         data: sortedCust.map(c => c[1]), 
                         backgroundColor: '#F59E0B',
-                        borderRadius: 6,
-                        barThickness: 20
+                        borderRadius: 4,
+                        barThickness: 12
                     }] 
                 },
                 options: { 
-                    responsive: true, 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // Horizontal Bar
                     plugins: { legend: { display: false } }, 
                     scales: { 
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false } }, 
-                        x: { grid: { display: false }, border: { display: false } } 
-                    } 
-                }
-            });
-
-            // Sales Trend
-            const dates = Object.keys(stats.salesByDate).sort((a,b) => new Date(a) - new Date(b)).slice(-10);
-            const salesData = dates.map(d => stats.salesByDate[d]);
-            const salesCtx = document.getElementById('salesOverTimeChart').getContext('2d');
-            if (window.salesChart) window.salesChart.destroy();
-            window.salesChart = new Chart(salesCtx, {
-                type: 'line',
-                data: { 
-                    labels: dates.map(d => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })), 
-                    datasets: [{ 
-                        label: 'Sales (R)', 
-                        data: salesData, 
-                        borderColor: '#10B981', 
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)', 
-                        fill: true, 
-                        tension: 0.4,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#0f0f11',
-                        pointBorderWidth: 2
-                    }] 
-                },
-                options: { 
-                    responsive: true, 
-                    plugins: { legend: { display: false } }, 
-                    scales: { 
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false } }, 
-                        x: { grid: { display: false }, border: { display: false } } 
+                        x: { display: false }, 
+                        y: { grid: { display: false }, border: { display: false }, ticks: {color: '#a1a1aa'} } 
                     } 
                 }
             });
         }
 
+        // --- Initialization ---
         window.onload = loadData;
     </script>
 </head>
-<body class="text-gray-300 min-h-screen pb-20">
+<body class="text-gray-300 min-h-screen pb-24 selection:bg-amber-500/30">
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 z-[100] bg-[#09090b] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="loader mb-4"></div>
+        <p class="text-gray-500 text-sm font-medium animate-pulse">Syncing Data...</p>
+    </div>
 
     <!-- Header -->
-    <header class="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center text-black font-black text-xl italic shadow-lg shadow-amber-500/20">K</div>
-            <div>
-                <h1 class="text-2xl font-black italic text-white tracking-tight">KTY <span class="text-amber-500">HALAAL</span></h1>
-                <p class="text-xs text-gray-500 font-bold tracking-widest uppercase">Biltong Manager</p>
+    <header class="sticky top-0 z-50 glass-panel border-b-0 border-t-0 border-l-0 border-r-0 rounded-none px-4 py-3">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center text-black font-black text-xl italic shadow-lg shadow-amber-500/20">K</div>
+                <div>
+                    <h1 class="text-lg font-black italic text-white tracking-tight leading-none">KTY <span class="text-amber-500">HALAAL</span></h1>
+                    <p class="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Manager Pro</p>
+                </div>
             </div>
-        </div>
-        
-        <div class="flex gap-3">
-            <button onclick="openSettings()" class="glass-panel px-4 py-2 rounded-lg hover:bg-white/10 text-sm font-semibold flex items-center gap-2 transition-colors">
-                <i class="ph ph-gear text-lg"></i> Settings
-            </button>
-            <button onclick="exportToCSV()" class="glass-panel px-4 py-2 rounded-lg hover:bg-white/10 text-sm font-semibold flex items-center gap-2 transition-colors text-emerald-400">
-                <i class="ph ph-download-simple text-lg"></i> Export CSV
-            </button>
+            
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('dateFilterDropdown').classList.toggle('hidden')" class="relative px-3 py-2 rounded-lg bg-zinc-900/50 border border-white/5 text-xs font-bold flex items-center gap-2 hover:bg-zinc-800 transition-colors">
+                    <i class="ph ph-calendar-blank"></i> <span id="dateFilterLabel">All Time</span> <i class="ph ph-caret-down"></i>
+                </button>
+                <!-- Date Dropdown -->
+                <div id="dateFilterDropdown" class="hidden absolute top-14 right-2 bg-[#18181b] border border-white/10 rounded-xl shadow-xl p-1 w-40 z-50 flex flex-col">
+                    <button onclick="setDateFilter('all')" class="text-left px-3 py-2 text-xs font-bold hover:bg-white/10 rounded-lg text-gray-300">All Time</button>
+                    <button onclick="setDateFilter('thisMonth')" class="text-left px-3 py-2 text-xs font-bold hover:bg-white/10 rounded-lg text-gray-300">This Month</button>
+                    <button onclick="setDateFilter('lastMonth')" class="text-left px-3 py-2 text-xs font-bold hover:bg-white/10 rounded-lg text-gray-300">Last Month</button>
+                </div>
+
+                <button onclick="exportToCSV()" class="p-2 rounded-lg bg-zinc-900/50 border border-white/5 hover:bg-emerald-500/20 hover:text-emerald-400 transition-colors text-gray-400"><i class="ph ph-download-simple text-lg"></i></button>
+            </div>
         </div>
     </header>
 
-    <div class="container mx-auto px-4 max-w-6xl space-y-8">
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 max-w-7xl space-y-6 pt-6">
         
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <!-- Stat Cards -->
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
-                <div class="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-                <div class="flex items-center gap-3 mb-2 text-emerald-400">
-                    <i class="ph ph-trend-up text-2xl"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider">Profit</span>
+        <!-- Quick Stats Row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="glass-panel p-4 rounded-2xl relative overflow-hidden">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Net Profit</p>
+                        <p id="stat-profit" class="text-xl font-black text-white mt-1">R0.00</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500"><i class="ph ph-trend-up"></i></div>
                 </div>
-                <p id="stat-profit" class="text-xl font-black text-white">R0.00</p>
             </div>
 
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
-                <div class="absolute -right-4 -top-4 w-16 h-16 bg-red-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-                <div class="flex items-center gap-3 mb-2 text-red-400">
-                    <i class="ph ph-warning text-2xl"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider">Owed</span>
+            <div class="glass-panel p-4 rounded-2xl relative overflow-hidden">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Outstanding</p>
+                        <p id="stat-owed" class="text-xl font-black text-white mt-1">R0.00</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500"><i class="ph ph-warning-circle"></i></div>
                 </div>
-                <p id="stat-owed" class="text-xl font-black text-white">R0.00</p>
             </div>
 
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
-                <div class="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-                <div class="flex items-center gap-3 mb-2 text-blue-400">
-                    <i class="ph ph-currency-dollar text-2xl"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider">Revenue</span>
+            <div class="glass-panel p-4 rounded-2xl relative overflow-hidden">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Sales</p>
+                        <p id="stat-revenue" class="text-xl font-black text-white mt-1">R0.00</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500"><i class="ph ph-currency-circle-dollar"></i></div>
                 </div>
-                <p id="stat-revenue" class="text-xl font-black text-white">R0.00</p>
             </div>
 
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
-                <div class="flex items-center gap-3 mb-2 text-amber-400">
-                    <i class="ph ph-crown text-2xl"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider">Top Cust</span>
+            <div class="glass-panel p-4 rounded-2xl relative overflow-hidden">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Packs Sold</p>
+                        <p id="stat-packs" class="text-xl font-black text-white mt-1">0</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500"><i class="ph ph-package"></i></div>
                 </div>
-                <p id="stat-top" class="text-sm font-bold text-white truncate pr-2">---</p>
-            </div>
-
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
-                <div class="flex items-center gap-3 mb-2 text-purple-400">
-                    <i class="ph ph-fire text-2xl"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider">Best Flavor</span>
-                </div>
-                <p id="stat-flavor" class="text-lg font-black text-white">---</p>
-            </div>
-
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
-                <div class="flex items-center gap-3 mb-2 text-pink-400">
-                    <i class="ph ph-package text-2xl"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider">Packs Sold</span>
-                </div>
-                <p id="stat-packs" class="text-xl font-black text-white">0</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- Left Column: New Order & Debt -->
-            <div class="lg:col-span-4 space-y-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Sidebar: Actions & Inventory -->
+            <div class="lg:col-span-4 xl:col-span-3 space-y-6">
                 
+                <!-- Inventory Widget -->
+                <div class="glass-panel p-5 rounded-3xl">
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Stock Levels</h3>
+                    <div class="space-y-3">
+                        <div class="bg-black/20 p-3 rounded-xl border border-white/5 flex justify-between items-center" id="inv-chilli-wrap">
+                            <span class="font-bold text-sm">Chilli 🌶️</span>
+                            <span class="font-mono font-bold text-lg" id="inv-chilli">0</span>
+                        </div>
+                        <div class="flex gap-1 mb-2">
+                            <button onclick="updateStock('Chilli', -1)" class="flex-1 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded text-xs font-bold">-1</button>
+                            <button onclick="updateStock('Chilli', 1)" class="flex-1 py-1 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 rounded text-xs font-bold">+1</button>
+                            <button onclick="updateStock('Chilli', 10)" class="flex-1 py-1 bg-blue-500/20 hover:bg-blue-500/40 text-blue-400 rounded text-xs font-bold">+10</button>
+                        </div>
+
+                        <div class="bg-black/20 p-3 rounded-xl border border-white/5 flex justify-between items-center" id="inv-medium-wrap">
+                            <span class="font-bold text-sm">Medium 🐂</span>
+                            <span class="font-mono font-bold text-lg" id="inv-medium">0</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="updateStock('Medium', -1)" class="flex-1 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded text-xs font-bold">-1</button>
+                            <button onclick="updateStock('Medium', 1)" class="flex-1 py-1 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 rounded text-xs font-bold">+1</button>
+                            <button onclick="updateStock('Medium', 10)" class="flex-1 py-1 bg-blue-500/20 hover:bg-blue-500/40 text-blue-400 rounded text-xs font-bold">+10</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- New Order Form -->
-                <div class="glass-panel p-6 rounded-3xl border-t border-t-amber-500/30">
-                    <h2 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <div class="glass-panel p-6 rounded-3xl border-t border-t-amber-500/30 shadow-lg shadow-amber-900/10">
+                    <h2 class="text-lg font-bold text-white mb-5 flex items-center gap-2">
                         <i class="ph ph-plus-circle text-amber-500 text-xl"></i> New Order
                     </h2>
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Customer Name</label>
-                            <input id="customer" type="text" placeholder="e.g. John Doe" class="glass-input w-full px-4 py-3 rounded-xl text-sm">
+                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Customer</label>
+                            <input id="customer" type="text" placeholder="Name" class="glass-input w-full px-4 py-2.5 rounded-xl text-sm">
                         </div>
                         
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Flavor</label>
                                 <div class="relative">
-                                    <select id="flavor" class="glass-input w-full px-4 py-3 rounded-xl text-sm appearance-none cursor-pointer">
+                                    <select id="flavor" class="glass-input w-full px-4 py-2.5 rounded-xl text-sm appearance-none cursor-pointer">
                                         <option value="Chilli">Chilli 🌶️</option>
                                         <option value="Medium">Medium 🐂</option>
                                     </select>
-                                    <i class="ph ph-caret-down absolute right-4 top-3.5 text-gray-500 pointer-events-none"></i>
+                                    <i class="ph ph-caret-down absolute right-4 top-3 text-gray-500 pointer-events-none"></i>
                                 </div>
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Qty</label>
-                                <input id="qty" type="number" min="1" value="1" class="glass-input w-full px-4 py-3 rounded-xl text-center text-sm">
+                                <input id="qty" type="number" min="1" value="1" class="glass-input w-full px-4 py-2.5 rounded-xl text-center text-sm">
                             </div>
                         </div>
 
                         <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Phone (Optional)</label>
-                            <input id="phone" type="text" placeholder="WhatsApp..." class="glass-input w-full px-4 py-3 rounded-xl text-sm">
+                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Phone (WhatsApp)</label>
+                            <input id="phone" type="tel" placeholder="e.g. 0821234567" class="glass-input w-full px-4 py-2.5 rounded-xl text-sm">
                         </div>
 
                         <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Order Notes (Optional)</label>
-                            <input id="notes" type="text" placeholder="e.g. Extra spicy..." class="glass-input w-full px-4 py-3 rounded-xl text-sm">
+                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Notes</label>
+                            <input id="notes" type="text" placeholder="Optional..." class="glass-input w-full px-4 py-2.5 rounded-xl text-sm">
                         </div>
 
-                        <label class="flex items-center justify-between gap-4 bg-white/5 p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
-                            <span class="text-sm font-semibold text-gray-300">Paid Upfront?</span>
+                        <label class="flex items-center justify-between gap-4 bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                            <span class="text-sm font-semibold text-gray-300">Paid Now?</span>
                             <div class="relative inline-flex items-center cursor-pointer">
                                 <input id="isPaid" type="checkbox" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                             </div>
                         </label>
 
-                        <button id="saveBtn" onclick="saveOrder()" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-4 rounded-xl uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 mt-2">
+                        <button id="saveBtn" onclick="saveOrder()" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-3.5 rounded-xl uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2">
                             <i class="ph ph-receipt text-lg"></i> Log Order
                         </button>
                     </div>
                 </div>
 
-                <!-- Pending Payments -->
-                <div class="glass-panel p-6 rounded-3xl">
-                    <h3 class="text-sm font-bold text-red-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <i class="ph ph-bell-ringing"></i> Pending Payments
+                <!-- Pending Debts -->
+                <div class="glass-panel p-5 rounded-3xl">
+                    <h3 class="text-xs font-bold text-red-400 uppercase tracking-widest mb-4 flex items-center justify-between">
+                        <span>Outstanding Debts</span>
+                        <span class="text-[10px] bg-red-500/20 px-2 py-0.5 rounded-full" id="debtCount">0</span>
                     </h3>
-                    <div id="debtorList" class="space-y-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar"></div>
+                    <div id="debtorList" class="space-y-1 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar"></div>
                 </div>
             </div>
 
-            <!-- Right Column: History & Charts -->
-            <div class="lg:col-span-8 space-y-8">
+            <!-- Right Content: History & Charts -->
+            <div class="lg:col-span-8 xl:col-span-9 space-y-6">
                 
-                <!-- Charts -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="glass-panel p-5 rounded-3xl flex flex-col items-center justify-center">
-                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-4 text-center">Flavor Split</h3>
-                        <div class="w-full h-48 relative">
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="glass-panel p-4 rounded-3xl flex flex-col sm:flex-row items-center gap-6">
+                        <div class="relative w-32 h-32 flex-shrink-0">
                             <canvas id="flavorChart"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span class="text-[10px] text-gray-500 font-bold uppercase">Flavor Split</span>
+                            </div>
+                        </div>
+                        <div class="flex-1 space-y-2 w-full">
+                            <div class="flex justify-between items-center text-sm border-b border-white/5 pb-2">
+                                <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span> Chilli</span>
+                                <span class="font-mono text-gray-300" id="chart-val-chilli">0</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Medium</span>
+                                <span class="font-mono text-gray-300" id="chart-val-medium">0</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="glass-panel p-5 rounded-3xl">
-                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-4 text-center">Top 5 Customers</h3>
-                        <div class="h-48 w-full relative">
+
+                    <div class="glass-panel p-4 rounded-3xl">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">Top Customers</h3>
+                        <div class="h-32 w-full relative">
                             <canvas id="topCustomersChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="glass-panel p-5 rounded-3xl">
-                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-4 text-center">Sales Trend</h3>
-                        <div class="h-48 w-full relative">
-                            <canvas id="salesOverTimeChart"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <!-- Customer History -->
-                <div class="glass-panel p-6 sm:p-8 rounded-3xl">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <!-- Main History Section -->
+                <div class="glass-panel p-1 sm:p-6 rounded-3xl min-h-[500px]">
+                    
+                    <!-- Toolbar -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 px-2 pt-4">
                         <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                            <i class="ph ph-users text-amber-500"></i> Order History
+                            <i class="ph ph-list-dashes text-amber-500"></i> Order History
                         </h3>
                         
-                        <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                            <input id="searchInput" onkeyup="renderCustomerHistory()" type="text" placeholder="Search..." class="glass-input w-full sm:w-40 px-4 py-2 rounded-lg text-sm">
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                            <input id="searchInput" onkeyup="/* Add search logic if needed, currently basic */" type="text" placeholder="Search..." class="glass-input px-3 py-2 rounded-lg text-xs w-full sm:w-32">
                             
-                            <div class="flex bg-zinc-900/50 rounded-lg p-1 border border-white/5">
-                                <button onclick="setFilter('all')" class="filter-btn px-3 py-1 rounded-md text-xs font-bold uppercase transition-all bg-amber-500 text-black" data-filter="all">All</button>
-                                <button onclick="setFilter('pending')" class="filter-btn px-3 py-1 rounded-md text-xs font-bold uppercase transition-all text-gray-400 hover:text-white" data-filter="pending">Pending</button>
-                                <button onclick="setFilter('paid')" class="filter-btn px-3 py-1 rounded-md text-xs font-bold uppercase transition-all text-gray-400 hover:text-white" data-filter="paid">Paid</button>
+                            <div class="flex bg-zinc-900/50 rounded-lg p-0.5 border border-white/5">
+                                <button onclick="setFilter('all')" class="filter-btn px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all bg-amber-500 text-black" data-filter="all">All</button>
+                                <button onclick="setFilter('pending')" class="filter-btn px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all text-gray-400 hover:text-white" data-filter="pending">Owe</button>
+                                <button onclick="setFilter('paid')" class="filter-btn px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all text-gray-400 hover:text-white" data-filter="paid">Paid</button>
                             </div>
                         </div>
                     </div>
-                    
-                    <div id="customerHistory" class="space-y-4">
-                        <!-- Populated by JS -->
+
+                    <!-- Data Table / Cards -->
+                    <div class="text-sm border-t border-white/5 mt-2">
+                        <!-- Desktop Headers -->
+                        <div class="desktop-table grid grid-cols-12 gap-4 px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            <div class="col-span-1"></div> <!-- Checkbox -->
+                            <div class="col-span-2">Date</div>
+                            <div class="col-span-5">Customer</div>
+                            <div class="col-span-2 text-right">Amount</div>
+                            <div class="col-span-2">Status</div>
+                        </div>
+                        
+                        <!-- List Container -->
+                        <div id="customerHistory" class="pb-20">
+                            <!-- Populated by JS -->
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modals -->
-    
-    <!-- Edit Order Modal -->
+    <!-- Bulk Action Bar (Bottom Fixed) -->
+    <div id="bulkActionBar" class="fixed bottom-0 left-0 w-full bg-[#18181b] border-t border-white/10 p-4 transform translate-y-full transition-transform duration-300 z-50 shadow-2xl flex justify-between items-center">
+        <span class="text-sm font-bold text-white"><span id="bulkCount">0</span> orders selected</span>
+        <div class="flex gap-3">
+            <button onclick="selectedOrderIds.clear(); renderBulkActions(); renderUI();" class="px-4 py-2 rounded-lg text-sm font-bold hover:bg-white/10 text-gray-400">Cancel</button>
+            <button id="bulkActionBtn" onclick="bulkDelete()" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold shadow-lg shadow-red-900/50">Delete Selected</button>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
     <div id="editModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="glass-panel w-full max-w-md p-6 rounded-3xl border border-white/10 shadow-2xl transform transition-all scale-100">
-            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <i class="ph ph-pencil-simple text-blue-400"></i> Edit Order
-            </h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase">Customer</label>
-                    <input id="editCustomer" type="text" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border border-white/10 shadow-2xl animate-slide-up">
+            <h3 class="text-lg font-bold text-white mb-4">Edit Order</h3>
+            <div class="space-y-3">
+                <input id="editCustomer" type="text" class="glass-input w-full px-4 py-3 rounded-xl text-sm">
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="editFlavor" class="glass-input w-full px-4 py-3 rounded-xl text-sm"><option value="Chilli">Chilli</option><option value="Medium">Medium</option></select>
+                    <input id="editQty" type="number" min="1" class="glass-input w-full px-4 py-3 rounded-xl text-sm">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Flavor</label>
-                        <select id="editFlavor" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
-                            <option value="Chilli">Chilli</option>
-                            <option value="Medium">Medium</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Qty</label>
-                        <input id="editQty" type="number" min="1" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase">Notes</label>
-                    <input id="editNotes" type="text" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
-                </div>
-                <div class="flex items-center gap-3 bg-white/5 p-3 rounded-xl">
+                <input id="editNotes" type="text" class="glass-input w-full px-4 py-3 rounded-xl text-sm">
+                <div class="flex items-center gap-3">
                     <input id="editPaid" type="checkbox" class="w-5 h-5 accent-emerald-500 rounded">
                     <span class="text-sm font-bold text-gray-300">Mark as Paid</span>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4 mt-6">
+                <div class="grid grid-cols-2 gap-3 mt-4">
                     <button onclick="document.getElementById('editModal').classList.add('hidden')" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-colors">Cancel</button>
-                    <button onclick="saveEdit()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-blue-500/20">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border border-red-500/30 shadow-2xl text-center">
-            <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="ph ph-trash text-3xl text-red-500"></i>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-2">Delete Order?</h3>
-            <p class="text-gray-400 mb-6 text-sm">This action cannot be undone.</p>
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-colors">Cancel</button>
-                <button onclick="confirmDelete()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-red-500/20">Delete</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border border-amber-500/30 shadow-2xl">
-            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <i class="ph ph-sliders text-amber-500"></i> App Settings
-            </h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase">Price per Pack (R)</label>
-                    <input id="setting-price" type="number" step="0.01" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase">Cost per Pack (R)</label>
-                    <input id="setting-cost" type="number" step="0.01" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
-                    <p class="text-xs text-gray-500 mt-2">*These are used for future calculations. Past orders remain unchanged.</p>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4 mt-6">
-                    <button onclick="document.getElementById('settingsModal').classList.add('hidden')" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-colors">Close</button>
-                    <button onclick="saveSettings()" class="bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 rounded-xl transition-colors shadow-lg shadow-amber-500/20">Save</button>
+                    <button onclick="saveEdit()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/20">Save</button>
                 </div>
             </div>
         </div>
@@ -840,4 +1011,3 @@
 
 </body>
 </html>
-```
