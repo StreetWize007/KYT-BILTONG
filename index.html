@@ -1,18 +1,71 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KTY HALAAL BILTONG</title>
+    <title>KTY HALAAL BILTONG | Manager</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
-        tailwind.config = { corePlugins: { preflight: false } }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        glass: "rgba(255, 255, 255, 0.05)",
+                        glassBorder: "rgba(255, 255, 255, 0.1)",
+                        accent: "#F59E0B", // Amber 500
+                    }
+                }
+            }
+        }
     </script>
+
+    <style>
+        body { background-color: #0f0f11; background-image: radial-gradient(circle at 50% 0%, #27272a 0%, transparent 60%); }
+        .glass-panel {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        .glass-input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            transition: all 0.2s;
+        }
+        .glass-input:focus {
+            border-color: #F59E0B;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+            outline: none;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #18181b; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; opacity: 0; transform: translateY(10px); }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+    </style>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, orderBy, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // --- Firebase Config ---
         const firebaseConfig = {
             apiKey: "AIzaSyC8VkN2_icMo9LEM1TbPjDf_kckmSI41z0",
             authDomain: "biltong-fd731.firebaseapp.com",
@@ -26,11 +79,43 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        const PRICE_PER_PACK = 35;
-        const COST_PER_PACK = 16.25; 
+        // --- App State & Settings ---
+        // Default settings, overridden by localStorage if available
+        let appSettings = JSON.parse(localStorage.getItem('ktySettings')) || {
+            pricePerPack: 35,
+            costPerPack: 16.25
+        };
 
         let allOrders = [];
         let groupedCustomers = {};
+        let currentFilter = 'all'; // all, pending, paid
+
+        // --- Helper: Update Settings ---
+        window.saveSettings = () => {
+            const price = parseFloat(document.getElementById('setting-price').value);
+            const cost = parseFloat(document.getElementById('setting-cost').value);
+            
+            if (isNaN(price) || isNaN(cost)) {
+                showToast("Invalid price values", "error");
+                return;
+            }
+
+            appSettings.pricePerPack = price;
+            appSettings.costPerPack = cost;
+            localStorage.setItem('ktySettings', JSON.stringify(appSettings));
+            
+            document.getElementById('settingsModal').classList.add('hidden');
+            showToast("Settings saved! Reloading data...", "success");
+            loadData(); // Recalculate stats with new prices
+        };
+
+        window.openSettings = () => {
+            document.getElementById('setting-price').value = appSettings.pricePerPack;
+            document.getElementById('setting-cost').value = appSettings.costPerPack;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        };
+
+        // --- Core Functions ---
 
         window.saveOrder = async () => {
             const customer = document.getElementById('customer').value.trim();
@@ -38,113 +123,171 @@
             const flavor = document.getElementById('flavor').value;
             const qty = parseInt(document.getElementById('qty').value);
             const isPaid = document.getElementById('isPaid').checked;
+            const notes = document.getElementById('notes').value.trim();
             
             if(!customer || isNaN(qty) || qty <= 0) {
-                showToast("Please fill in all fields correctly!", "error");
+                showToast("Please enter customer name and quantity.", "error");
                 return;
             }
 
+            const btn = document.getElementById('saveBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="ph ph-spinner animate-spin"></i> Saving...`;
+
             try {
                 await addDoc(collection(db, "orders"), {
-                    customer, phone, flavor, qty,
-                    totalSales: qty * PRICE_PER_PACK,
-                    totalProfit: qty * (PRICE_PER_PACK - COST_PER_PACK),
+                    customer, phone, flavor, qty, notes,
+                    totalSales: qty * appSettings.pricePerPack,
+                    totalProfit: qty * (appSettings.pricePerPack - appSettings.costPerPack),
                     paid: isPaid,
                     timestamp: new Date()
                 });
                 showToast("Order logged successfully!", "success");
+                // Reset form
                 document.getElementById('customer').value = '';
                 document.getElementById('phone').value = '';
                 document.getElementById('qty').value = '';
+                document.getElementById('notes').value = '';
                 document.getElementById('isPaid').checked = false;
                 await loadData();
             } catch (e) { 
-                showToast("Error: " + e.message, "error"); 
+                console.error(e);
+                showToast("Error saving order: " + e.message, "error"); 
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
             }
         };
 
-        window.markAsPaid = async (orderId) => {
-            const btn = event.target;
-            btn.disabled = true;
-            btn.innerText = "Marking...";
-            await updateDoc(doc(db, "orders", orderId), { paid: true });
-            await loadData();
+        window.togglePaid = async (orderId, currentState) => {
+            try {
+                // Optimistic UI update could go here, but simple reload is safer for consistency
+                await updateDoc(doc(db, "orders", orderId), { paid: !currentState });
+                await loadData();
+            } catch(e) { showToast("Update failed", "error"); }
         };
-
-        window.changeFlavor = (orderId, currentFlavor) => {
-            document.getElementById('flavorModal').dataset.orderId = orderId;
-            document.getElementById('flavorSelect').value = currentFlavor;
-            document.getElementById('flavorModal').classList.remove('hidden');
-        };
-
-        window.confirmChangeFlavor = async () => {
-            const modal = document.getElementById('flavorModal');
-            const orderId = modal.dataset.orderId;
-            const newFlavor = document.getElementById('flavorSelect').value;
-            await updateDoc(doc(db, "orders", orderId), { flavor: newFlavor });
-            modal.classList.add('hidden');
-            showToast("Flavor updated!", "success");
-            await loadData();
-        };
-
-        window.closeFlavorModal = () => document.getElementById('flavorModal').classList.add('hidden');
-
-        window.editCustomerName = (orderId, currentName) => {
-            document.getElementById('nameModal').dataset.orderId = orderId;
-            document.getElementById('newNameInput').value = currentName;
-            document.getElementById('nameModal').classList.remove('hidden');
-        };
-
-        window.confirmChangeName = async () => {
-            const modal = document.getElementById('nameModal');
-            const orderId = modal.dataset.orderId;
-            const newName = document.getElementById('newNameInput').value.trim();
-            if (!newName) {
-                showToast("Customer name cannot be empty!", "error");
-                return;
-            }
-            await updateDoc(doc(db, "orders", orderId), { customer: newName });
-            modal.classList.add('hidden');
-            showToast("Customer name updated!", "success");
-            await loadData();
-        };
-
-        window.closeNameModal = () => document.getElementById('nameModal').classList.add('hidden');
 
         window.deleteOrder = (orderId) => {
-            document.getElementById('deleteModal').dataset.orderId = orderId;
-            document.getElementById('deleteModal').classList.remove('hidden');
+            const modal = document.getElementById('deleteModal');
+            modal.dataset.orderId = orderId;
+            modal.classList.remove('hidden');
         };
 
         window.confirmDelete = async () => {
             const modal = document.getElementById('deleteModal');
             const orderId = modal.dataset.orderId;
-            await deleteDoc(doc(db, "orders", orderId));
-            modal.classList.add('hidden');
-            showToast("Order deleted.", "success");
-            await loadData();
+            try {
+                await deleteDoc(doc(db, "orders", orderId));
+                modal.classList.add('hidden');
+                showToast("Order deleted.", "success");
+                await loadData();
+            } catch(e) { showToast("Could not delete", "error"); }
         };
 
-        window.closeDeleteModal = () => document.getElementById('deleteModal').classList.add('hidden');
+        window.editOrder = (orderId) => {
+            const order = allOrders.find(o => o.id === orderId);
+            if (!order) return;
 
-        window.searchCustomers = () => {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = Object.keys(groupedCustomers)
-                .filter(name => name.toLowerCase().includes(term))
-                .sort();
-            renderCustomerHistory(filtered);
+            // Populate Edit Modal
+            document.getElementById('editModal').dataset.orderId = orderId;
+            document.getElementById('editCustomer').value = order.customer;
+            document.getElementById('editFlavor').value = order.flavor;
+            document.getElementById('editQty').value = order.qty;
+            document.getElementById('editNotes').value = order.notes || '';
+            document.getElementById('editPaid').checked = order.paid;
+            
+            document.getElementById('editModal').classList.remove('hidden');
         };
+
+        window.saveEdit = async () => {
+            const modal = document.getElementById('editModal');
+            const orderId = modal.dataset.orderId;
+            const customer = document.getElementById('editCustomer').value.trim();
+            const flavor = document.getElementById('editFlavor').value;
+            const qty = parseInt(document.getElementById('editQty').value);
+            const notes = document.getElementById('editNotes').value.trim();
+            const paid = document.getElementById('editPaid').checked;
+
+            if(!customer || qty <= 0) return showToast("Invalid input", "error");
+
+            try {
+                await updateDoc(doc(db, "orders", orderId), {
+                    customer, flavor, qty, notes, paid,
+                    totalSales: qty * appSettings.pricePerPack,
+                    totalProfit: qty * (appSettings.pricePerPack - appSettings.costPerPack)
+                });
+                modal.classList.add('hidden');
+                showToast("Order updated!", "success");
+                await loadData();
+            } catch(e) { showToast("Update failed", "error"); }
+        };
+
+        window.setFilter = (filterType) => {
+            currentFilter = filterType;
+            // Update buttons
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                if(b.dataset.filter === filterType) {
+                    b.classList.remove('bg-zinc-800', 'text-gray-400');
+                    b.classList.add('bg-amber-500', 'text-black');
+                } else {
+                    b.classList.add('bg-zinc-800', 'text-gray-400');
+                    b.classList.remove('bg-amber-500', 'text-black');
+                }
+            });
+            renderCustomerHistory();
+        };
+
+        window.exportToCSV = () => {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Date,Customer,Phone,Flavor,Qty,Total,Status,Notes\n";
+            
+            allOrders.forEach(o => {
+                const date = o.timestamp.toDate().toLocaleDateString();
+                const status = o.paid ? "PAID" : "PENDING";
+                // Escape commas in notes
+                const safeNotes = `"${(o.notes || "").replace(/"/g, '""')}"`;
+                const row = `${date},${o.customer},${o.phone || ''},${o.flavor},${o.qty},${o.totalSales},${status},${safeNotes}`;
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `kty_sales_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // --- UI Rendering ---
 
         function showToast(message, type = "info") {
             const toast = document.createElement('div');
-            toast.className = `fixed bottom-4 left-4 right-4 mx-4 px-6 py-4 rounded-xl shadow-2xl text-white font-bold z-50 text-center sm:left-auto sm:right-4 sm:mx-0 sm:w-auto ${
-                type === "success" ? "bg-green-600" : type === "error" ? "bg-red-600" : "bg-blue-600"
-            }`;
-            toast.innerText = message;
+            const colors = {
+                success: "bg-green-600 shadow-green-900/20",
+                error: "bg-red-600 shadow-red-900/20",
+                info: "bg-blue-600 shadow-blue-900/20"
+            };
+            const icons = {
+                success: "ph-check-circle",
+                error: "ph-warning-circle",
+                info: "ph-info"
+            };
+
+            toast.className = `fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl text-white font-medium z-50 flex items-center gap-3 transition-all duration-300 translate-y-10 opacity-0 ${colors[type]}`;
+            toast.innerHTML = `<i class="ph ${icons[type]} text-xl"></i> ${message}`;
+            
             document.body.appendChild(toast);
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            });
+
             setTimeout(() => {
-                toast.style.opacity = "0";
-                setTimeout(() => document.body.removeChild(toast), 500);
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => document.body.removeChild(toast), 300);
             }, 3000);
         }
 
@@ -154,21 +297,22 @@
             
             allOrders = [];
             groupedCustomers = {};
+            
             let stats = {
                 collectedProfit: 0,
                 potentialOwed: 0,
                 totalRevenue: 0,
                 totalPacks: 0,
                 flavors: { Chilli: 0, Medium: 0 },
-                customers: {},
+                customers: {}, // Total spent
                 salesByDate: {}
             };
             
             let debtHTML = "";
 
-            querySnapshot.forEach((orderDoc) => {
-                const data = orderDoc.data();
-                const id = orderDoc.id;
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const id = doc.id;
                 const dateKey = data.timestamp.toDate().toDateString();
 
                 allOrders.push({ id, ...data });
@@ -176,9 +320,11 @@
                 if (!groupedCustomers[data.customer]) groupedCustomers[data.customer] = [];
                 groupedCustomers[data.customer].push({ id, ...data });
 
+                // Stats Calculation
                 stats.totalRevenue += data.totalSales;
                 stats.totalPacks += data.qty;
-                stats.flavors[data.flavor] += data.qty;
+                stats.flavors[data.flavor] = (stats.flavors[data.flavor] || 0) + data.qty;
+                
                 stats.customers[data.customer] = (stats.customers[data.customer] || 0) + data.totalSales;
                 stats.salesByDate[dateKey] = (stats.salesByDate[dateKey] || 0) + data.totalSales;
 
@@ -187,16 +333,25 @@
                 } else {
                     stats.potentialOwed += data.totalSales;
                     debtHTML += `
-                        <div class="bg-red-900/30 border border-red-600/50 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3 shadow-lg">
-                            <div>
-                                <p class="font-bold text-red-300">${data.customer}</p>
-                                <p class="text-xs text-red-400">OWES R${data.totalSales} • ${data.flavor} × ${data.qty}</p>
+                        <div class="glass-panel p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3 border-l-4 border-l-red-500">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <p class="font-bold text-white">${data.customer}</p>
+                                    ${data.notes ? '<i class="ph ph-note-pencil text-gray-400 text-sm" title="Has notes"></i>' : ''}
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">
+                                    ${data.flavor} × ${data.qty} <span class="mx-1">•</span> 
+                                    <span class="text-red-400 font-bold">OWES R${data.totalSales.toFixed(2)}</span>
+                                </p>
                             </div>
-                            <button onclick="markAsPaid('${id}')" class="w-full sm:w-auto bg-green-600 hover:bg-green-500 text-white text-xs px-6 py-3 rounded-full font-bold uppercase shadow">Mark Paid</button>
+                            <button onclick="togglePaid('${id}', false)" class="group w-full sm:w-auto bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-600/50 text-sm px-4 py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
+                                <i class="ph ph-check-circle text-lg"></i> Mark Paid
+                            </button>
                         </div>`;
                 }
             });
 
+            // Render Stats
             const topCustEntry = Object.entries(stats.customers).sort((a,b) => b[1] - a[1])[0];
             const topCust = topCustEntry ? topCustEntry[0] : "N/A";
 
@@ -207,219 +362,482 @@
             document.getElementById('stat-flavor').innerText = stats.flavors.Chilli >= stats.flavors.Medium ? "Chilli 🌶️" : "Medium 🐂";
             document.getElementById('stat-packs').innerText = stats.totalPacks;
             
-            document.getElementById('debtorList').innerHTML = debtHTML || "<p class='text-gray-500 text-center py-8 italic'>No outstanding payments 🎉</p>";
+            const debtContainer = document.getElementById('debtorList');
+            if(stats.potentialOwed === 0) {
+                debtContainer.innerHTML = `<div class="text-center py-6 opacity-50"><i class="ph ph-smiley text-4xl mb-2"></i><p>All settled up! 🎉</p></div>`;
+            } else {
+                debtContainer.innerHTML = debtHTML;
+            }
 
-            const sortedCustomers = Object.keys(groupedCustomers).sort();
-            renderCustomerHistory(sortedCustomers);
+            renderCustomerHistory();
             renderCharts(stats);
         }
 
-        function renderCustomerHistory(customerList) {
-            let historyHTML = "";
-            if (customerList.length === 0) {
-                historyHTML = '<div class="p-8 text-center text-gray-500 italic">No customers found</div>';
-            } else {
-                customerList.forEach(customer => {
-                    const orders = groupedCustomers[customer];
-                    const totalSpent = orders.reduce((sum, o) => sum + o.totalSales, 0);
-                    const totalOwed = orders.filter(o => !o.paid).reduce((sum, o) => sum + o.totalSales, 0);
+        function renderCustomerHistory() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            
+            // Get customers based on filter
+            let customersToShow = Object.keys(groupedCustomers).sort();
 
-                    historyHTML += `
-                        <div class="mb-6 bg-zinc-800/30 rounded-2xl overflow-hidden shadow-lg">
-                            <div class="p-5 bg-zinc-800/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                                <div>
-                                    <p class="font-bold text-xl text-yellow-400">${customer}</p>
-                                    <p class="text-sm text-gray-400">Total: R${totalSpent} ${totalOwed > 0 ? `• Owes R${totalOwed}` : ''}</p>
-                                </div>
-                                <p class="text-sm text-gray-500">${orders.length} order${orders.length > 1 ? 's' : ''}</p>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full min-w-[600px]">
-                                    <tbody>`;
-                    orders.sort((a,b) => b.timestamp.toDate() - a.timestamp.toDate()).forEach(order => {
-                        const date = order.timestamp.toDate().toLocaleDateString();
-                        historyHTML += `
-                            <tr class="border-b border-white/5 hover:bg-white/5">
-                                <td class="p-4 text-sm">${date}</td>
-                                <td class="p-4 text-sm">${order.flavor} × ${order.qty}</td>
-                                <td class="p-4 text-sm">R${order.totalSales}</td>
-                                <td class="p-4 text-sm"><span class="${order.paid ? 'text-green-400' : 'text-yellow-400'} font-bold">${order.paid ? '✅ Paid' : '⏳ Pending'}</span></td>
-                                <td class="p-4 text-right">
-                                    <div class="flex flex-wrap justify-end gap-2">
-                                        <button onclick="editCustomerName('${order.id}', '${order.customer.replace(/'/g, "\\'")}')" class="text-purple-400 hover:text-purple-300 text-xs px-2 py-1">Name</button>
-                                        <button onclick="changeFlavor('${order.id}', '${order.flavor}')" class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1">Flavor</button>
-                                        <button onclick="deleteOrder('${order.id}')" class="text-red-400 hover:text-red-300 text-xs px-2 py-1">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>`;
-                    });
-                    historyHTML += `
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>`;
-                });
+            if (currentFilter === 'pending') {
+                customersToShow = customersToShow.filter(c => groupedCustomers[c].some(o => !o.paid));
+            } else if (currentFilter === 'paid') {
+                customersToShow = customersToShow.filter(c => groupedCustomers[c].every(o => o.paid));
             }
-            document.getElementById('customerHistory').innerHTML = historyHTML;
+
+            // Apply Search
+            if (term) {
+                customersToShow = customersToShow.filter(name => name.toLowerCase().includes(term));
+            }
+
+            const container = document.getElementById('customerHistory');
+            
+            if (customersToShow.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-gray-500 italic fade-in">No records found for this filter.</div>`;
+                return;
+            }
+
+            let html = "";
+            customersToShow.forEach(customer => {
+                // Only show orders relevant to the filter logic inside the customer card
+                let orders = groupedCustomers[customer];
+                // Sorting orders for this customer: Newest first
+                orders.sort((a,b) => b.timestamp.toDate() - a.timestamp.toDate());
+
+                // Filter display orders based on global filter? 
+                // Usually better to show the customer if ANY order matches, but maybe highlight.
+                // For now, let's show all orders for the customer if the customer matches the search/filter criteria.
+
+                const totalSpent = orders.reduce((sum, o) => sum + o.totalSales, 0);
+                const totalOwed = orders.filter(o => !o.paid).reduce((sum, o) => sum + o.totalSales, 0);
+                const isGood = totalOwed === 0;
+
+                html += `
+                    <div class="glass-panel rounded-2xl overflow-hidden mb-6 fade-in hover:border-white/20 transition-colors">
+                        <div class="p-5 bg-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 font-bold text-lg border border-amber-500/30">
+                                    ${customer.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-lg text-white">${customer}</p>
+                                    <div class="flex gap-3 text-xs text-gray-400 mt-0.5">
+                                        <span>Total Spent: <b class="text-gray-200">R${totalSpent}</b></span>
+                                        ${!isGood ? `<span class="text-red-400">Owes: <b>R${totalOwed}</b></span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-gray-400">
+                                <thead class="bg-black/20 text-xs uppercase font-bold text-gray-500">
+                                    <tr>
+                                        <th class="px-6 py-3">Date</th>
+                                        <th class="px-6 py-3">Details</th>
+                                        <th class="px-6 py-3">Amount</th>
+                                        <th class="px-6 py-3">Status</th>
+                                        <th class="px-6 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5">`;
+                
+                orders.forEach(order => {
+                    const date = order.timestamp.toDate().toLocaleDateString();
+                    const statusClass = order.paid ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" : "text-amber-400 bg-amber-400/10 border-amber-400/20";
+                    const statusText = order.paid ? "PAID" : "PENDING";
+                    
+                    html += `
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td class="px-6 py-4 whitespace-nowrap font-mono text-xs">${date}</td>
+                            <td class="px-6 py-4">
+                                <div class="font-bold text-gray-200">${order.flavor} <span class="text-gray-500 font-normal">x</span> ${order.qty}</div>
+                                ${order.notes ? `<div class="text-xs text-amber-500/80 mt-1 truncate max-w-[150px]"><i class="ph ph-note"></i> ${order.notes}</div>` : ''}
+                            </td>
+                            <td class="px-6 py-4 font-mono text-gray-300">R${order.totalSales}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded text-xs font-bold border ${statusClass}">${statusText}</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="editOrder('${order.id}')" class="p-2 hover:bg-white/10 rounded-lg text-blue-400" title="Edit"><i class="ph ph-pencil-simple"></i></button>
+                                    <button onclick="deleteOrder('${order.id}')" class="p-2 hover:bg-white/10 rounded-lg text-red-400" title="Delete"><i class="ph ph-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+
+                html += `</tbody></table></div></div>`;
+            });
+            container.innerHTML = html;
         }
 
         function renderCharts(stats) {
-            // Charts unchanged (they are already responsive)
+            Chart.defaults.color = '#71717a';
+            Chart.defaults.font.family = '"Plus Jakarta Sans", sans-serif';
+            
+            // Flavor Chart
             const flavorCtx = document.getElementById('flavorChart').getContext('2d');
             if (window.flavorChartInstance) window.flavorChartInstance.destroy();
             window.flavorChartInstance = new Chart(flavorCtx, {
                 type: 'doughnut',
-                data: { labels: ['Chilli 🌶️', 'Medium 🐂'], datasets: [{ data: [stats.flavors.Chilli, stats.flavors.Medium], backgroundColor: ['#EF4444', '#3B82F6'], borderWidth: 0 }] },
-                options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#D1D5DB' } } } }
+                data: { 
+                    labels: ['Chilli 🌶️', 'Medium 🐂'], 
+                    datasets: [{ 
+                        data: [stats.flavors.Chilli || 0, stats.flavors.Medium || 0], 
+                        backgroundColor: ['#EF4444', '#3B82F6'], 
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }] 
+                },
+                options: { 
+                    responsive: true, 
+                    cutout: '70%',
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } 
+                    } 
+                }
             });
 
+            // Top Customers Chart
             const sortedCust = Object.entries(stats.customers).sort((a,b) => b[1]-a[1]).slice(0,5);
             const custCtx = document.getElementById('topCustomersChart').getContext('2d');
             if (window.topCustChart) window.topCustChart.destroy();
             window.topCustChart = new Chart(custCtx, {
                 type: 'bar',
-                data: { labels: sortedCust.map(c => c[0]), datasets: [{ label: 'Sales (R)', data: sortedCust.map(c => c[1]), backgroundColor: '#FBBF24' }] },
-                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#D1D5DB' } }, x: { ticks: { color: '#D1D5DB' } } } }
+                data: { 
+                    labels: sortedCust.map(c => c[0]), 
+                    datasets: [{ 
+                        label: 'Sales (R)', 
+                        data: sortedCust.map(c => c[1]), 
+                        backgroundColor: '#F59E0B',
+                        borderRadius: 6,
+                        barThickness: 20
+                    }] 
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false } }, 
+                        x: { grid: { display: false }, border: { display: false } } 
+                    } 
+                }
             });
 
+            // Sales Trend
             const dates = Object.keys(stats.salesByDate).sort((a,b) => new Date(a) - new Date(b)).slice(-10);
             const salesData = dates.map(d => stats.salesByDate[d]);
             const salesCtx = document.getElementById('salesOverTimeChart').getContext('2d');
             if (window.salesChart) window.salesChart.destroy();
             window.salesChart = new Chart(salesCtx, {
                 type: 'line',
-                data: { labels: dates.map(d => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })), datasets: [{ label: 'Daily Sales (R)', data: salesData, borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.2)', fill: true, tension: 0.4 }] },
-                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#D1D5DB' } }, x: { ticks: { color: '#D1D5DB' } } } }
+                data: { 
+                    labels: dates.map(d => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })), 
+                    datasets: [{ 
+                        label: 'Sales (R)', 
+                        data: salesData, 
+                        borderColor: '#10B981', 
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+                        fill: true, 
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#0f0f11',
+                        pointBorderWidth: 2
+                    }] 
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false } }, 
+                        x: { grid: { display: false }, border: { display: false } } 
+                    } 
+                }
             });
         }
 
         window.onload = loadData;
     </script>
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-black to-gray-900 text-gray-200 font-sans antialiased min-h-screen">
+<body class="text-gray-300 min-h-screen pb-20">
 
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <h1 class="text-3xl sm:text-4xl font-black text-yellow-400 italic text-center mb-8 tracking-wider">KTY HALAAL BILTONG</h1>
+    <!-- Header -->
+    <header class="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center text-black font-black text-xl italic shadow-lg shadow-amber-500/20">K</div>
+            <div>
+                <h1 class="text-2xl font-black italic text-white tracking-tight">KTY <span class="text-amber-500">HALAAL</span></h1>
+                <p class="text-xs text-gray-500 font-bold tracking-widest uppercase">Biltong Manager</p>
+            </div>
+        </div>
+        
+        <div class="flex gap-3">
+            <button onclick="openSettings()" class="glass-panel px-4 py-2 rounded-lg hover:bg-white/10 text-sm font-semibold flex items-center gap-2 transition-colors">
+                <i class="ph ph-gear text-lg"></i> Settings
+            </button>
+            <button onclick="exportToCSV()" class="glass-panel px-4 py-2 rounded-lg hover:bg-white/10 text-sm font-semibold flex items-center gap-2 transition-colors text-emerald-400">
+                <i class="ph ph-download-simple text-lg"></i> Export CSV
+            </button>
+        </div>
+    </header>
 
-        <!-- Stats -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
-                <p class="text-xs uppercase text-gray-400 tracking-widest">Profit</p>
-                <p id="stat-profit" class="text-lg sm:text-2xl font-black text-green-400 mt-1">R0.00</p>
+    <div class="container mx-auto px-4 max-w-6xl space-y-8">
+        
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <!-- Stat Cards -->
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                <div class="flex items-center gap-3 mb-2 text-emerald-400">
+                    <i class="ph ph-trend-up text-2xl"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">Profit</span>
+                </div>
+                <p id="stat-profit" class="text-xl font-black text-white">R0.00</p>
             </div>
-            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
-                <p class="text-xs uppercase text-gray-400 tracking-widest">Owed</p>
-                <p id="stat-owed" class="text-lg sm:text-2xl font-black text-red-400 mt-1">R0.00</p>
+
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 w-16 h-16 bg-red-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                <div class="flex items-center gap-3 mb-2 text-red-400">
+                    <i class="ph ph-warning text-2xl"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">Owed</span>
+                </div>
+                <p id="stat-owed" class="text-xl font-black text-white">R0.00</p>
             </div>
-            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
-                <p class="text-xs uppercase text-gray-400 tracking-widest">Revenue</p>
-                <p id="stat-revenue" class="text-lg sm:text-2xl font-black text-cyan-400 mt-1">R0.00</p>
+
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                <div class="flex items-center gap-3 mb-2 text-blue-400">
+                    <i class="ph ph-currency-dollar text-2xl"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">Revenue</span>
+                </div>
+                <p id="stat-revenue" class="text-xl font-black text-white">R0.00</p>
             </div>
-            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
-                <p class="text-xs uppercase text-gray-400 tracking-widest">Top Customer</p>
-                <p id="stat-top" class="text-sm sm:text-lg font-black text-yellow-400 mt-1 truncate">---</p>
+
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="flex items-center gap-3 mb-2 text-amber-400">
+                    <i class="ph ph-crown text-2xl"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">Top Cust</span>
+                </div>
+                <p id="stat-top" class="text-sm font-bold text-white truncate pr-2">---</p>
             </div>
-            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
-                <p class="text-xs uppercase text-gray-400 tracking-widest">Best Flavor</p>
-                <p id="stat-flavor" class="text-lg sm:text-2xl font-black text-blue-400 mt-1">---</p>
+
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="flex items-center gap-3 mb-2 text-purple-400">
+                    <i class="ph ph-fire text-2xl"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">Best Flavor</span>
+                </div>
+                <p id="stat-flavor" class="text-lg font-black text-white">---</p>
             </div>
-            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl text-center">
-                <p class="text-xs uppercase text-gray-400 tracking-widest">Packs Sold</p>
-                <p id="stat-packs" class="text-lg sm:text-2xl font-black text-purple-400 mt-1">0</p>
+
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="flex items-center gap-3 mb-2 text-pink-400">
+                    <i class="ph ph-package text-2xl"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">Packs Sold</span>
+                </div>
+                <p id="stat-packs" class="text-xl font-black text-white">0</p>
             </div>
         </div>
 
-        <!-- New Order Form -->
-        <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 sm:p-8 rounded-3xl border border-yellow-500/30 shadow-2xl mb-8">
-            <h2 class="text-2xl font-black text-yellow-400 mb-6 text-center sm:text-left">Log New Order</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input id="customer" type="text" placeholder="Customer Name" class="bg-black/50 border border-white/20 p-4 rounded-2xl focus:border-yellow-400 outline-none text-gray-200">
-                <input id="phone" type="text" placeholder="Phone / WhatsApp" class="bg-black/50 border border-white/20 p-4 rounded-2xl focus:border-yellow-400 outline-none text-gray-200">
-            </div>
-            <div class="grid grid-cols-2 gap-4 mt-4">
-                <select id="flavor" class="bg-black/50 border border-white/20 p-4 rounded-2xl text-gray-200">
-                    <option value="Chilli">Chilli 🌶️</option>
-                    <option value="Medium">Medium 🐂</option>
-                </select>
-                <input id="qty" type="number" min="1" placeholder="Quantity" class="bg-black/50 border border-white/20 p-4 rounded-2xl text-center text-gray-200">
-            </div>
-            <label class="flex items-center gap-4 mt-5 bg-black/30 p-4 rounded-2xl border border-white/10 cursor-pointer">
-                <input id="isPaid" type="checkbox" class="w-6 h-6 accent-green-500 rounded">
-                <span class="font-bold uppercase text-gray-300">Paid upfront?</span>
-            </label>
-            <button onclick="saveOrder()" class="w-full mt-6 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-bold py-4 rounded-2xl uppercase tracking-wider shadow-xl">Add Order</button>
-        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column: New Order & Debt -->
+            <div class="lg:col-span-4 space-y-8">
+                
+                <!-- New Order Form -->
+                <div class="glass-panel p-6 rounded-3xl border-t border-t-amber-500/30">
+                    <h2 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <i class="ph ph-plus-circle text-amber-500 text-xl"></i> New Order
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Customer Name</label>
+                            <input id="customer" type="text" placeholder="e.g. John Doe" class="glass-input w-full px-4 py-3 rounded-xl text-sm">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Flavor</label>
+                                <div class="relative">
+                                    <select id="flavor" class="glass-input w-full px-4 py-3 rounded-xl text-sm appearance-none cursor-pointer">
+                                        <option value="Chilli">Chilli 🌶️</option>
+                                        <option value="Medium">Medium 🐂</option>
+                                    </select>
+                                    <i class="ph ph-caret-down absolute right-4 top-3.5 text-gray-500 pointer-events-none"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Qty</label>
+                                <input id="qty" type="number" min="1" value="1" class="glass-input w-full px-4 py-3 rounded-xl text-center text-sm">
+                            </div>
+                        </div>
 
-        <!-- Pending Payments -->
-        <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 sm:p-8 rounded-3xl border border-red-600/20 shadow-2xl mb-8">
-            <h3 class="text-xl font-black text-red-400 uppercase tracking-widest mb-6 text-center sm:text-left">Pending Payments</h3>
-            <div id="debtorList" class="space-y-3"></div>
-        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Phone (Optional)</label>
+                            <input id="phone" type="text" placeholder="WhatsApp..." class="glass-input w-full px-4 py-3 rounded-xl text-sm">
+                        </div>
 
-        <!-- Charts -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-3xl border border-white/10 shadow-2xl">
-                <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest mb-4 text-center">Flavor Split</h3>
-                <canvas id="flavorChart"></canvas>
-            </div>
-            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-3xl border border-white/10 shadow-2xl">
-                <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest mb-4 text-center">Top 5 Customers</h3>
-                <canvas id="topCustomersChart"></canvas>
-            </div>
-            <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-3xl border border-white/10 shadow-2xl">
-                <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest mb-4 text-center">Sales Trend (Last 10 Days)</h3>
-                <canvas id="salesOverTimeChart"></canvas>
-            </div>
-        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Order Notes (Optional)</label>
+                            <input id="notes" type="text" placeholder="e.g. Extra spicy..." class="glass-input w-full px-4 py-3 rounded-xl text-sm">
+                        </div>
 
-        <!-- Customer History -->
-        <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h3 class="text-xl font-black text-gray-300 uppercase tracking-widest">Customer History</h3>
-                <input id="searchInput" onkeyup="searchCustomers()" type="text" placeholder="Search customer..." class="w-full sm:w-64 bg-black/50 border border-white/20 px-4 py-3 rounded-xl focus:border-yellow-400 outline-none text-gray-200">
-            </div>
-            <div id="customerHistory" class="space-y-6"></div>
-        </div>
+                        <label class="flex items-center justify-between gap-4 bg-white/5 p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                            <span class="text-sm font-semibold text-gray-300">Paid Upfront?</span>
+                            <div class="relative inline-flex items-center cursor-pointer">
+                                <input id="isPaid" type="checkbox" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                            </div>
+                        </label>
 
-        <!-- Modals remain the same -->
-        <!-- Edit Name Modal -->
-        <div id="nameModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4">
-            <div class="bg-zinc-900 p-6 rounded-3xl border border-purple-500/50 shadow-2xl w-full max-w-sm">
-                <h3 class="text-xl font-black text-purple-400 mb-5 text-center">Edit Customer Name</h3>
-                <input id="newNameInput" type="text" class="w-full bg-black/50 border border-white/20 p-4 rounded-2xl focus:border-purple-400 outline-none text-gray-200 mb-6">
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="confirmChangeName()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-2xl uppercase">Save</button>
-                    <button onclick="closeNameModal()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-2xl uppercase">Cancel</button>
+                        <button id="saveBtn" onclick="saveOrder()" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-4 rounded-xl uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 mt-2">
+                            <i class="ph ph-receipt text-lg"></i> Log Order
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pending Payments -->
+                <div class="glass-panel p-6 rounded-3xl">
+                    <h3 class="text-sm font-bold text-red-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i class="ph ph-bell-ringing"></i> Pending Payments
+                    </h3>
+                    <div id="debtorList" class="space-y-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar"></div>
                 </div>
             </div>
-        </div>
 
-        <!-- Edit Flavor Modal -->
-        <div id="flavorModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4">
-            <div class="bg-zinc-900 p-6 rounded-3xl border border-yellow-500/50 shadow-2xl w-full max-w-sm">
-                <h3 class="text-xl font-black text-yellow-400 mb-5 text-center">Change Flavor</h3>
-                <select id="flavorSelect" class="w-full bg-black/50 border border-white/20 p-4 rounded-2xl text-gray-200 mb-6">
-                    <option value="Chilli">Chilli 🌶️</option>
-                    <option value="Medium">Medium 🐂</option>
-                </select>
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="confirmChangeFlavor()" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-2xl uppercase">Save</button>
-                    <button onclick="closeFlavorModal()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-2xl uppercase">Cancel</button>
+            <!-- Right Column: History & Charts -->
+            <div class="lg:col-span-8 space-y-8">
+                
+                <!-- Charts -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-panel p-5 rounded-3xl flex flex-col items-center justify-center">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-4 text-center">Flavor Split</h3>
+                        <div class="w-full h-48 relative">
+                            <canvas id="flavorChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-3xl">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-4 text-center">Top 5 Customers</h3>
+                        <div class="h-48 w-full relative">
+                            <canvas id="topCustomersChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-3xl">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-4 text-center">Sales Trend</h3>
+                        <div class="h-48 w-full relative">
+                            <canvas id="salesOverTimeChart"></canvas>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Delete Modal -->
-        <div id="deleteModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4">
-            <div class="bg-zinc-900 p-6 rounded-3xl border border-red-500/50 shadow-2xl w-full max-w-sm">
-                <h3 class="text-xl font-black text-red-400 mb-5 text-center">Delete Order?</h3>
-                <p class="text-gray-300 mb-8 text-center">This action cannot be undone.</p>
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="confirmDelete()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-2xl uppercase">Delete</button>
-                    <button onclick="closeDeleteModal()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-2xl uppercase">Cancel</button>
+                <!-- Customer History -->
+                <div class="glass-panel p-6 sm:p-8 rounded-3xl">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="ph ph-users text-amber-500"></i> Order History
+                        </h3>
+                        
+                        <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <input id="searchInput" onkeyup="renderCustomerHistory()" type="text" placeholder="Search..." class="glass-input w-full sm:w-40 px-4 py-2 rounded-lg text-sm">
+                            
+                            <div class="flex bg-zinc-900/50 rounded-lg p-1 border border-white/5">
+                                <button onclick="setFilter('all')" class="filter-btn px-3 py-1 rounded-md text-xs font-bold uppercase transition-all bg-amber-500 text-black" data-filter="all">All</button>
+                                <button onclick="setFilter('pending')" class="filter-btn px-3 py-1 rounded-md text-xs font-bold uppercase transition-all text-gray-400 hover:text-white" data-filter="pending">Pending</button>
+                                <button onclick="setFilter('paid')" class="filter-btn px-3 py-1 rounded-md text-xs font-bold uppercase transition-all text-gray-400 hover:text-white" data-filter="paid">Paid</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="customerHistory" class="space-y-4">
+                        <!-- Populated by JS -->
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Modals -->
+    
+    <!-- Edit Order Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="glass-panel w-full max-w-md p-6 rounded-3xl border border-white/10 shadow-2xl transform transition-all scale-100">
+            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <i class="ph ph-pencil-simple text-blue-400"></i> Edit Order
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Customer</label>
+                    <input id="editCustomer" type="text" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Flavor</label>
+                        <select id="editFlavor" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
+                            <option value="Chilli">Chilli</option>
+                            <option value="Medium">Medium</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Qty</label>
+                        <input id="editQty" type="number" min="1" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Notes</label>
+                    <input id="editNotes" type="text" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
+                </div>
+                <div class="flex items-center gap-3 bg-white/5 p-3 rounded-xl">
+                    <input id="editPaid" type="checkbox" class="w-5 h-5 accent-emerald-500 rounded">
+                    <span class="text-sm font-bold text-gray-300">Mark as Paid</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <button onclick="document.getElementById('editModal').classList.add('hidden')" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-colors">Cancel</button>
+                    <button onclick="saveEdit()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-blue-500/20">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border border-red-500/30 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="ph ph-trash text-3xl text-red-500"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Delete Order?</h3>
+            <p class="text-gray-400 mb-6 text-sm">This action cannot be undone.</p>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-colors">Cancel</button>
+                <button onclick="confirmDelete()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-red-500/20">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border border-amber-500/30 shadow-2xl">
+            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <i class="ph ph-sliders text-amber-500"></i> App Settings
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Price per Pack (R)</label>
+                    <input id="setting-price" type="number" step="0.01" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Cost per Pack (R)</label>
+                    <input id="setting-cost" type="number" step="0.01" class="glass-input w-full px-4 py-3 rounded-xl mt-1">
+                    <p class="text-xs text-gray-500 mt-2">*These are used for future calculations. Past orders remain unchanged.</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <button onclick="document.getElementById('settingsModal').classList.add('hidden')" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-colors">Close</button>
+                    <button onclick="saveSettings()" class="bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 rounded-xl transition-colors shadow-lg shadow-amber-500/20">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
+```
