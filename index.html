@@ -99,12 +99,25 @@
             .desktop-table { display: none; }
             .mobile-card { display: block; }
         }
+
+        /* Status Badge Styles */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-width: 1px;
+        }
     </style>
 
     <!-- Firebase Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy, updateDoc, doc, deleteDoc, increment, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, updateDoc, doc, deleteDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -134,7 +147,7 @@
         let currentFilter = 'all'; 
         let dateFilter = 'all'; // all, thisMonth, lastMonth
         let selectedOrderIds = new Set();
-        let searchQuery = ""; // NEW: Search State
+        let searchQuery = ""; // Search State
 
         // --- Helper Functions ---
         
@@ -228,6 +241,7 @@
             const flavor = document.getElementById('flavor').value;
             const qty = parseInt(document.getElementById('qty').value);
             const isPaid = document.getElementById('isPaid').checked;
+            const isDispatched = document.getElementById('isDispatched').checked; // NEW
             const notes = document.getElementById('notes').value.trim();
             
             if(!customer || isNaN(qty) || qty <= 0) {
@@ -253,11 +267,12 @@
                     totalSales: qty * appSettings.pricePerPack,
                     totalProfit: qty * (appSettings.pricePerPack - appSettings.costPerPack),
                     paid: isPaid,
+                    dispatched: isDispatched, // NEW
                     timestamp: new Date()
                 });
 
                 // 2. Deduct Stock
-                await updateStock(flavor, -qty * -1); // Logic handled inside updateStock to invert for deduction
+                await updateStock(flavor, -qty);
 
                 showToast("Order logged successfully!", "success");
                 
@@ -267,6 +282,7 @@
                 document.getElementById('qty').value = '1';
                 document.getElementById('notes').value = '';
                 document.getElementById('isPaid').checked = false;
+                document.getElementById('isDispatched').checked = false; // NEW
                 
                 await loadData();
             } catch (e) { 
@@ -282,6 +298,14 @@
             try {
                 await updateDoc(doc(db, "orders", orderId), { paid: !currentState });
                 showToast("Payment status updated", "success");
+                await loadData();
+            } catch(e) { showToast("Update failed", "error"); }
+        };
+
+        window.toggleDispatched = async (orderId, currentState) => {
+            try {
+                await updateDoc(doc(db, "orders", orderId), { dispatched: !currentState });
+                showToast("Dispatch status updated", "success");
                 await loadData();
             } catch(e) { showToast("Update failed", "error"); }
         };
@@ -346,6 +370,7 @@
             document.getElementById('editQty').value = order.qty;
             document.getElementById('editNotes').value = order.notes || '';
             document.getElementById('editPaid').checked = order.paid;
+            document.getElementById('editDispatched').checked = order.dispatched; // NEW
             
             document.getElementById('editModal').classList.remove('hidden');
         };
@@ -358,12 +383,13 @@
             const qty = parseInt(document.getElementById('editQty').value);
             const notes = document.getElementById('editNotes').value.trim();
             const paid = document.getElementById('editPaid').checked;
+            const dispatched = document.getElementById('editDispatched').checked; // NEW
 
             if(!customer || qty <= 0) return showToast("Invalid input", "error");
 
             try {
                 await updateDoc(doc(db, "orders", orderId), {
-                    customer, flavor, qty, notes, paid,
+                    customer, flavor, qty, notes, paid, dispatched, // UPDATED
                     totalSales: qty * appSettings.pricePerPack,
                     totalProfit: qty * (appSettings.pricePerPack - appSettings.costPerPack)
                 });
@@ -393,7 +419,7 @@
             renderUI();
         };
 
-        // --- Search Functionality (FIXED & ENHANCED) ---
+        // --- Search Functionality ---
         window.handleSearch = (e) => {
             searchQuery = e.target.value.toLowerCase().trim();
             renderUI();
@@ -418,15 +444,16 @@
 
         window.exportToCSV = () => {
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Date,Customer,Phone,Flavor,Qty,Total,Status,Notes\n";
+            csvContent += "Date,Customer,Phone,Flavor,Qty,Total,Paid,Dispatched,Notes\n";
             
             const filtered = getFilteredOrders();
             
             filtered.forEach(o => {
                 const date = o.timestamp.toDate().toLocaleDateString();
-                const status = o.paid ? "PAID" : "PENDING";
+                const paid = o.paid ? "YES" : "NO";
+                const dispatched = o.dispatched ? "YES" : "NO"; // NEW
                 const safeNotes = `"${(o.notes || "").replace(/"/g, '""')}"`;
-                const row = `${date},${o.customer},${o.phone || ''},${o.flavor},${o.qty},${o.totalSales},${status},${safeNotes}`;
+                const row = `${date},${o.customer},${o.phone || ''},${o.flavor},${o.qty},${o.totalSales},${paid},${dispatched},${safeNotes}`;
                 csvContent += row + "\n";
             });
 
@@ -477,7 +504,6 @@
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
             } else if (dateFilter === 'lastMonth') {
                 start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                // End of last month is effectively start of this month
             }
 
             // Filter Logic
@@ -496,8 +522,10 @@
                 let statusPass = true;
                 if(currentFilter === 'pending') statusPass = !o.paid;
                 if(currentFilter === 'paid') statusPass = o.paid;
+                if(currentFilter === 'dispatched') statusPass = o.dispatched; // NEW FILTER
+                if(currentFilter === 'pendingDispatch') statusPass = !o.dispatched; // NEW FILTER
 
-                // ENHANCED: Search Filter (Customer, Phone, Flavor, Notes)
+                // Search Filter (Customer, Phone, Flavor, Notes)
                 let searchPass = true;
                 if (searchQuery) {
                     const q = searchQuery;
@@ -561,8 +589,6 @@
                 customers: {}, 
             };
 
-            let debtHTML = "";
-
             orders.forEach(o => {
                 stats.totalRevenue += o.totalSales;
                 stats.totalPacks += o.qty;
@@ -572,19 +598,6 @@
                 if (o.paid) stats.collectedProfit += o.totalProfit;
                 else {
                     stats.potentialOwed += o.totalSales;
-                    if(allOrders.find(x => x.id === o.id).paid === false) {
-                         debtHTML += `
-                        <div class="p-3 rounded-xl border border-white/5 bg-white/5 flex justify-between items-center mb-2 animate-fade-in">
-                            <div>
-                                <div class="font-bold text-sm text-gray-200">${o.customer}</div>
-                                <div class="text-xs text-red-400">R${o.totalSales.toFixed(2)}</div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="togglePaid('${o.id}', false)" class="bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white p-2 rounded-lg transition-colors" title="Mark Paid"><i class="ph ph-check"></i></button>
-                                <button onclick="openWhatsApp(${JSON.stringify(o).replace(/"/g, '&quot;')})" class="bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white p-2 rounded-lg transition-colors" title="WhatsApp"><i class="ph ph-whatsapp-logo"></i></button>
-                            </div>
-                        </div>`;
-                    }
                 }
             });
 
@@ -598,6 +611,9 @@
             const globalDebtors = allOrders.filter(o => !o.paid).sort((a,b) => b.timestamp.toDate() - a.timestamp.toDate()).slice(0, 15);
             let globalDebtHTML = "";
             globalDebtors.forEach(o => {
+                const dispatchStatus = o.dispatched ? "text-purple-400" : "text-gray-400";
+                const dispatchIcon = o.dispatched ? "ph-truck" : "ph-clock";
+                
                 globalDebtHTML += `
                     <div class="p-3 rounded-xl border-l-4 border-l-red-500 bg-white/5 flex justify-between items-center mb-2 group hover:bg-white/10 transition-colors">
                         <div class="overflow-hidden">
@@ -606,6 +622,7 @@
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="text-red-400 font-bold text-sm">R${o.totalSales.toFixed(2)}</span>
+                            <i class="ph ${dispatchIcon} text-sm ${dispatchStatus}" title="${o.dispatched ? 'Dispatched' : 'Not Dispatched'}"></i>
                             <button onclick="openWhatsApp(${JSON.stringify(o).replace(/"/g, '&quot;')})" class="text-green-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph ph-whatsapp-logo text-lg"></i></button>
                         </div>
                     </div>`;
@@ -654,8 +671,14 @@
                 html += `<div class="text-xs font-bold text-gray-500 uppercase tracking-widest mt-6 mb-2 pl-2 sticky top-0 bg-[#09090b]/90 backdrop-blur z-10 py-1">${dateStr}</div>`;
                 
                 grouped[dateStr].forEach((order, idx) => {
-                    const statusClass = order.paid ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" : "text-amber-400 bg-amber-400/10 border-amber-400/20";
-                    const statusText = order.paid ? "PAID" : "PENDING";
+                    // Determine status badges
+                    const paidStatus = order.paid ? 
+                        'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 
+                        'text-amber-400 bg-amber-400/10 border-amber-400/20';
+                    const dispatchStatus = order.dispatched ?
+                        'text-purple-400 bg-purple-400/10 border-purple-400/20' :
+                        'text-gray-400 bg-gray-400/10 border-gray-400/20';
+                    
                     const isSelected = selectedOrderIds.has(order.id) ? 'bg-amber-500/10 border-amber-500/50' : '';
                     const rowBg = idx % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.02]';
 
@@ -671,11 +694,15 @@
                             <div class="text-xs text-gray-500">${order.flavor} × ${order.qty}</div>
                         </div>
                         <div class="w-24 text-right font-mono text-sm text-gray-300">R${order.totalSales}</div>
-                        <div class="w-24 px-2">
-                            <span class="px-2 py-1 rounded text-[10px] font-bold border ${statusClass}">${statusText}</span>
+                        <div class="w-36 px-2 flex gap-2">
+                            <span class="status-badge ${paidStatus}">${order.paid ? 'Paid' : 'Owing'}</span>
+                            <span class="status-badge ${dispatchStatus}">${order.dispatched ? 'Sent' : 'Pending'}</span>
                         </div>
                         <div class="w-32 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             ${order.phone ? `<button onclick="openWhatsApp(${JSON.stringify(order).replace(/"/g, '&quot;')})" class="p-1.5 hover:bg-green-500/20 text-green-400 rounded-lg" title="WhatsApp"><i class="ph ph-whatsapp-logo text-lg"></i></button>` : ''}
+                            <button onclick="toggleDispatched('${order.id}', ${order.dispatched})" class="p-1.5 hover:bg-purple-500/20 text-purple-400 rounded-lg" title="${order.dispatched ? 'Mark as Pending' : 'Mark as Dispatched'}">
+                                <i class="ph ${order.dispatched ? 'ph-truck' : 'ph-clock'}"></i>
+                            </button>
                             <button onclick="editOrder('${order.id}')" class="p-1.5 hover:bg-white/10 text-blue-400 rounded-lg" title="Edit"><i class="ph ph-pencil-simple"></i></button>
                             <button onclick="deleteOrder('${order.id}')" class="p-1.5 hover:bg-red-500/20 text-red-400 rounded-lg" title="Delete"><i class="ph ph-trash"></i></button>
                         </div>
@@ -689,7 +716,10 @@
                                 <h4 class="font-bold text-white text-lg">${order.customer}</h4>
                                 <p class="text-xs text-gray-500 font-mono">${formatDate(order.timestamp)}</p>
                             </div>
-                            <span class="px-2 py-1 rounded text-[10px] font-bold border ${statusClass}">${statusText}</span>
+                            <div class="flex flex-col gap-1 items-end">
+                                <span class="status-badge ${paidStatus} text-[9px]">${order.paid ? 'Paid' : 'Owing'}</span>
+                                <span class="status-badge ${dispatchStatus} text-[9px]">${order.dispatched ? 'Sent' : 'Pending'}</span>
+                            </div>
                         </div>
                         <div class="flex justify-between items-center py-2 border-t border-white/5">
                             <div class="text-sm text-gray-300">
@@ -702,6 +732,9 @@
                         <div class="mt-4 flex gap-3 justify-end">
                             <input type="checkbox" onchange="toggleSelection('${order.id}')" class="self-center">
                             ${order.phone ? `<button onclick="openWhatsApp(${JSON.stringify(order).replace(/"/g, '&quot;')})" class="flex-1 py-2 rounded-xl bg-green-600/20 text-green-400 text-sm font-bold flex items-center justify-center gap-2"><i class="ph ph-whatsapp-logo text-lg"></i> Chat</button>` : ''}
+                            <button onclick="toggleDispatched('${order.id}', ${order.dispatched})" class="flex-1 py-2 rounded-xl bg-purple-600/20 text-purple-400 text-sm font-bold">
+                                ${order.dispatched ? 'Undo Send' : 'Mark Sent'}
+                            </button>
                             <button onclick="editOrder('${order.id}')" class="flex-1 py-2 rounded-xl bg-blue-600/20 text-blue-400 text-sm font-bold">Edit</button>
                         </div>
                     </div>`;
@@ -921,13 +954,24 @@
                             <input id="notes" type="text" placeholder="Optional..." class="glass-input w-full px-4 py-2.5 rounded-xl text-sm">
                         </div>
 
-                        <label class="flex items-center justify-between gap-4 bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
-                            <span class="text-sm font-semibold text-gray-300">Paid Now?</span>
-                            <div class="relative inline-flex items-center cursor-pointer">
-                                <input id="isPaid" type="checkbox" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                            </div>
-                        </label>
+                        <!-- Payment & Dispatch Options -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex flex-col justify-between bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                <span class="text-sm font-semibold text-gray-300 mb-2">Paid?</span>
+                                <div class="relative inline-flex items-center cursor-pointer self-end">
+                                    <input id="isPaid" type="checkbox" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                </div>
+                            </label>
+
+                            <label class="flex flex-col justify-between bg-white/5 p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                <span class="text-sm font-semibold text-gray-300 mb-2">Dispatched?</span>
+                                <div class="relative inline-flex items-center cursor-pointer self-end">
+                                    <input id="isDispatched" type="checkbox" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                                </div>
+                            </label>
+                        </div>
 
                         <button id="saveBtn" onclick="saveOrder()" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-3.5 rounded-xl uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2">
                             <i class="ph ph-receipt text-lg"></i> Log Order
@@ -1000,6 +1044,8 @@
                                 <button onclick="setFilter('all')" class="filter-btn px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all bg-amber-500 text-black" data-filter="all">All</button>
                                 <button onclick="setFilter('pending')" class="filter-btn px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all text-gray-400 hover:text-white" data-filter="pending">Owe</button>
                                 <button onclick="setFilter('paid')" class="filter-btn px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all text-gray-400 hover:text-white" data-filter="paid">Paid</button>
+                                <button onclick="setFilter('dispatched')" class="filter-btn px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all text-gray-400 hover:text-white" data-filter="dispatched">Dispatched</button>
+                                <button onclick="setFilter('pendingDispatch')" class="filter-btn px-3 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all text-gray-400 hover:text-white" data-filter="pendingDispatch">Pending Dispatch</button>
                             </div>
                         </div>
                     </div>
@@ -1010,9 +1056,9 @@
                         <div class="desktop-table grid grid-cols-12 gap-4 px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
                             <div class="col-span-1"></div> <!-- Checkbox -->
                             <div class="col-span-2">Date</div>
-                            <div class="col-span-5">Customer</div>
+                            <div class="col-span-4">Customer</div>
                             <div class="col-span-2 text-right">Amount</div>
-                            <div class="col-span-2">Status</div>
+                            <div class="col-span-3">Status</div>
                         </div>
                         
                         <!-- List Container -->
@@ -1045,9 +1091,15 @@
                     <input id="editQty" type="number" min="1" class="glass-input w-full px-4 py-3 rounded-xl text-sm">
                 </div>
                 <input id="editNotes" type="text" class="glass-input w-full px-4 py-3 rounded-xl text-sm">
-                <div class="flex items-center gap-3">
-                    <input id="editPaid" type="checkbox" class="w-5 h-5 accent-emerald-500 rounded">
-                    <span class="text-sm font-bold text-gray-300">Mark as Paid</span>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input id="editPaid" type="checkbox" class="w-5 h-5 accent-emerald-500 rounded">
+                        <span class="text-sm font-bold text-gray-300">Paid</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input id="editDispatched" type="checkbox" class="w-5 h-5 accent-purple-500 rounded">
+                        <span class="text-sm font-bold text-gray-300">Dispatched</span>
+                    </label>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-3 mt-4">
